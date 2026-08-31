@@ -106,13 +106,17 @@ node dsh-gateway.mjs --listen 3081 --target 127.0.0.1:3080
   on the desktop via 设置 → 插件 → 可配置 → 访问 PIN card.
 - `auth.json` is watched — hand edits reload the running PIN.
 - **Keep it running**: a bare `node` process dies with whatever console killed
-  node. On Windows register it as a logon task (auto-starts at sign-in,
-  hidden, auto-restarts on failure):
+  node. On Windows, `gateway\install-task.ps1` installs a sign-in autostart —
+  by default a Startup-folder entry (visible in Task Manager → Startup apps,
+  delete the file to uninstall); `-Task` opts into a crash-restarting
+  Scheduled Task instead, which is a security-sensitive persistence mechanism
+  corporate EDR/policy may flag. `-Remove` undoes either:
 
   ```powershell
-  powershell -ExecutionPolicy Bypass -File gateway\install-task.ps1     # install + start
-  powershell -ExecutionPolicy Bypass -File gateway\install-task.ps1 -Status
-  powershell -ExecutionPolicy Bypass -File gateway\install-task.ps1 -Remove
+  powershell -ExecutionPolicy Bypass -File gateway\install-task.ps1                    # Startup folder + start
+  powershell -ExecutionPolicy Bypass -File gateway\install-task.ps1 -Action task       # Scheduled Task instead
+  powershell -ExecutionPolicy Bypass -File gateway\install-task.ps1 -Action status
+  powershell -ExecutionPolicy Bypass -File gateway\install-task.ps1 -Action remove     # undoes both
   ```
 
   See `gateway/README.md` for the Linux systemd equivalent.

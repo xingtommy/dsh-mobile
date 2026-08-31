@@ -22,17 +22,25 @@ node dsh-gateway.mjs [--listen 3081] [--target 127.0.0.1:3080]
 
 ### Keep it running
 
-A bare `node` process dies with whatever console killed node. Supervise it:
+A bare `node` process dies with whatever console killed node. Pick a
+supervisor — they trade off crash-recovery against footprint:
 
-**Windows** — register a logon scheduled task (hidden, auto-start at sign-in,
-restarted on failure, working directory pinned here so `auth.json` resolves):
+**Windows — Startup folder (default, most transparent)**: a `.cmd` in the
+user's Startup folder. Visible and toggleable in Task Manager → Startup apps;
+delete the file (or `-Remove`) to uninstall. Does not restart on crash.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File install-task.ps1            # install + start
+powershell -ExecutionPolicy Bypass -File install-task.ps1                       # install + start
 powershell -ExecutionPolicy Bypass -File install-task.ps1 -Listen 3082 -Target 127.0.0.1:3080
-powershell -ExecutionPolicy Bypass -File install-task.ps1 -Status    # task state + port probe
-powershell -ExecutionPolicy Bypass -File install-task.ps1 -Remove    # unregister
+powershell -ExecutionPolicy Bypass -File install-task.ps1 -Action status        # both mechanisms + port probe
+powershell -ExecutionPolicy Bypass -File install-task.ps1 -Action remove        # undoes both mechanisms
 ```
+
+**Windows — Scheduled Task (crash-restarting)**: `-Action task` registers a
+logon task that auto-restarts on failure and survives reboots. Note that
+scheduled tasks are a security-sensitive persistence mechanism (MITRE
+T1053.005) — corporate EDR/policy may flag them; prefer the Startup folder on
+managed machines, and always `-Action remove` before deleting this folder.
 
 **Linux** — a user systemd unit (`~/.config/systemd/user/dsh-gateway.service`):
 

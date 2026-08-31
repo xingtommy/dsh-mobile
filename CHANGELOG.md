@@ -2,6 +2,26 @@
 
 ## 2026-08-31
 
+### Changed
+
+- **gateway/install-task.ps1**: replaced the `[switch]` parameters with a single
+  `-Action install|status|remove|task` string. Switch parameters failed to bind
+  when the script was launched via `powershell -File` from wrapped/hosted
+  sessions (`Cannot convert value ... to type SwitchParameter`) while the same
+  invocation through `-Command` worked; a value parameter eliminates that
+  entire failure class. Also: the port probe now uses a raw TcpClient instead
+  of `Test-NetConnection`, the script is pure ASCII (Windows PowerShell 5.1
+  reads BOM-less files as ANSI and mangles non-ASCII tokens under `-File`),
+  and the Startup-folder install starts the gateway immediately instead of
+  waiting for the next sign-in.
+- **gateway/install-task.ps1**: the default autostart is now a Startup-folder
+  entry (user-visible in Task Manager → Startup apps, delete the file to
+  uninstall) rather than a logon Scheduled Task. Scheduled tasks are a
+  security-sensitive persistence mechanism (MITRE T1053.005) that corporate
+  EDR/policy may flag and that outlives the repo folder when uninstalled
+  by hand; `-Action task` opts into it for crash-restarting behaviour, and
+  `-Action remove` cleans up both mechanisms.
+
 ### Fixed
 
 - **ui-mobile**: declared `@deepseek-ai/dsh-client-ui-settings-plugins` in the
