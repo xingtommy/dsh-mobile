@@ -29,9 +29,12 @@ export function MobileHome(props: MobilePageProps) {
     const selected = filter === 'all'
       ? undefined
       : workspaces.items.find(workspace => workspace.workspaceId === filter)
+    // Match the desktop browser: archived sessions stay out of every list mode.
+    const archived = workspaces.archivedSessionIds
     return sessions.ids
       .map(id => sessions.byId[id])
       .filter((row): row is NonNullable<typeof row> => row !== undefined && !row.blank && row.origin !== 'subagent')
+      .filter(row => !archived.includes(row.id))
       .filter(row => selected === undefined || selected.sessionIds.includes(row.id))
       .sort((left, right) => right.updatedAt - left.updatedAt)
   }, [sessions, workspaces, filter])

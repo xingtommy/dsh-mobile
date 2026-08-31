@@ -24,6 +24,11 @@
 
 ### Fixed
 
+- **ui-mobile**: the mobile Home session list now filters out archived
+  sessions (`workspaces.archivedSessionIds`), matching the desktop browser,
+  which excludes them in every list mode. Previously the mobile shell showed
+  archived sessions as if they were active.
+
 - **ui-mobile**: declared `@deepseek-ai/dsh-client-ui-settings-plugins` in the
   package's `dsh.client.inject` list. The gateway-PIN card registers into the
   `settings.plugin.item` slot, which that package declares; without the inject
