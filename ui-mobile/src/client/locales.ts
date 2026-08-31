@@ -105,6 +105,18 @@ export const zh = {
   'workspace.new.empty': '此目录没有子文件夹',
   'workspace.new.error': '操作失败：{message}',
   'workspace.new.created': '工作区已创建',
+  'pending.approval.waiting': '等待授权',
+  'pending.approval.escalation': '智能体请求使用 {toolName}',
+  'pending.approval.reject': '拒绝',
+  'pending.approval.allow': '仅本次允许',
+  'pending.question.title': '智能体需要你的输入',
+  'pending.question.submit': '提交回答',
+  'pending.question.submitting': '提交中…',
+  'pending.question.skip': '跳过此题',
+  'pending.question.custom': '自定义答案…',
+  'pending.question.recommended': '推荐',
+  'pending.question.incomplete': '还有未回答的问题：请每题选择或填写（或跳过）',
+  'pending.question.cancel': '关闭并取消',
 }
 
 /** English dictionary (every key mirrored). */
@@ -208,6 +220,18 @@ export const en: Record<keyof typeof zh, string> = {
   'workspace.new.empty': 'No subfolders here',
   'workspace.new.error': 'Failed: {message}',
   'workspace.new.created': 'Workspace created',
+  'pending.approval.waiting': 'Waiting for approval',
+  'pending.approval.escalation': 'The agent wants to use {toolName}',
+  'pending.approval.reject': 'Deny',
+  'pending.approval.allow': 'Allow once',
+  'pending.question.title': 'The agent needs your input',
+  'pending.question.submit': 'Submit answer',
+  'pending.question.submitting': 'Submitting…',
+  'pending.question.skip': 'Skip this question',
+  'pending.question.custom': 'Custom answer…',
+  'pending.question.recommended': 'Recommended',
+  'pending.question.incomplete': 'Some questions are unanswered: choose or fill in each one (or skip)',
+  'pending.question.cancel': 'Close and cancel',
 }
 
 /** Namespace keys owned by this plugin. */

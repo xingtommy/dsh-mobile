@@ -6,10 +6,11 @@
  * here directly once the session's scope is listed.
  */
 import { useEffect, useRef, useState } from 'react'
-import type { ConversationNode, RunningToolCall, SessionId } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ConversationNode, PendingInteraction, RunningToolCall, SessionId } from '@deepseek-ai/dsh-client-runtime/client'
 import type { MobilePageProps } from './MobileShell.tsx'
 import { MobileChatMenu } from './MobileChatMenu.tsx'
 import { MobileMessageItem } from './MobileMessageItem.tsx'
+import { MobilePendingPanel } from './MobilePendingPanel.tsx'
 import { goBack, navigateDetails } from './useMobileNav.ts'
 import { useSnapshot } from './useSnapshot.ts'
 import css from './MobileChatPage.module.css'
@@ -20,6 +21,7 @@ interface Props extends MobilePageProps {
 
 const EMPTY_NODES: readonly ConversationNode[] = []
 const EMPTY_CALLS: readonly RunningToolCall[] = []
+const EMPTY_PENDING: readonly PendingInteraction[] = []
 
 /** One conversation page of the page stack. */
 export function MobileChatPage(props: Props) {
@@ -49,6 +51,7 @@ export function MobileChatPage(props: Props) {
   const promptError = snap?.promptError ?? null
   const openState = snap?.openState
   const hasMore = snap?.hasMore === true
+  const pendingInteractions = snap?.pending ?? EMPTY_PENDING
 
   const onScroll = (): void => {
     const el = scrollerRef.current
@@ -102,6 +105,10 @@ export function MobileChatPage(props: Props) {
           {runningCalls.map(call => <MobileMessageItem key={call.callId} runningCall={call} t={t} />)}
           {promptError !== null && <div className={css.error}>{promptError.error.message}</div>}
         </main>
+      )}
+
+      {snap !== undefined && pendingInteractions.length > 0 && (
+        <MobilePendingPanel pending={pendingInteractions} runningCalls={runningCalls} t={t} />
       )}
 
       {face !== undefined && openState === 'open' && (

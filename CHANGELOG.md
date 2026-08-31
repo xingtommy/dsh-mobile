@@ -2,6 +2,19 @@
 
 ## 2026-08-31
 
+### Added
+
+- **ui-mobile**: pending host interactions (ask-user question batches and tool
+  approvals) now render in the mobile chat page. The session face snapshot
+  already exposes `pending: readonly PendingInteraction[]`; the new
+  MobilePendingPanel renders an approval card (waiting strip, reason or
+  tool-name escalation headline, paired shell command, Deny / Allow-once) and
+  a question card (stacked questions, single/multi options with recommended
+  badges, custom answers, per-question skip, cancel) above the composer,
+  answering through the carrier `respond` protocol with the same wire
+  encodings as the desktop composer chain. Previously a pending interaction
+  left the mobile task looking stuck with nothing to answer.
+
 ### Changed
 
 - **gateway/install-task.ps1**: replaced the `[switch]` parameters with a single
