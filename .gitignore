@@ -1,0 +1,9 @@
+# Secrets & runtime state — never commit these.
+gateway/auth.json
+gateway/gateway.log
+
+# Node / build artifacts
+node_modules/
+lib/
+*.tsbuildinfo
+*.js.map
