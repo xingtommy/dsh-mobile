@@ -20,6 +20,40 @@ cp auth.example.json auth.json   # set a real PIN (4-12 digits), or export DSH_G
 node dsh-gateway.mjs [--listen 3081] [--target 127.0.0.1:3080]
 ```
 
+### Keep it running
+
+A bare `node` process dies with whatever console killed node. Supervise it:
+
+**Windows** — register a logon scheduled task (hidden, auto-start at sign-in,
+restarted on failure, working directory pinned here so `auth.json` resolves):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File install-task.ps1            # install + start
+powershell -ExecutionPolicy Bypass -File install-task.ps1 -Listen 3082 -Target 127.0.0.1:3080
+powershell -ExecutionPolicy Bypass -File install-task.ps1 -Status    # task state + port probe
+powershell -ExecutionPolicy Bypass -File install-task.ps1 -Remove    # unregister
+```
+
+**Linux** — a user systemd unit (`~/.config/systemd/user/dsh-gateway.service`):
+
+```ini
+[Unit]
+Description=dsh-gateway (dsh-mobile PIN proxy)
+After=network.target
+
+[Service]
+WorkingDirectory=%h/path/to/dsh-mobile/gateway
+ExecStart=/usr/bin/env node dsh-gateway.mjs --listen 3081 --target 127.0.0.1:3080
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target
+```
+
+Enable with `systemctl --user enable --now dsh-gateway` (and
+`loginctl enable-linger $USER` to keep it alive without an active session).
+
 - **PIN**: `<dir>/auth.json` → `{"pin":"1234"}` (4-12 digits; or the
   `DSH_GATEWAY_PIN` env var). The file is watched — hand edits reload the PIN
   and invalidate all phone sessions.

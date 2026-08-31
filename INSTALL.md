@@ -105,6 +105,17 @@ node dsh-gateway.mjs --listen 3081 --target 127.0.0.1:3080
 - Set / change the PIN at `http://127.0.0.1:3081/__setpin` (loopback only), or
   on the desktop via 设置 → 插件 → 可配置 → 访问 PIN card.
 - `auth.json` is watched — hand edits reload the running PIN.
+- **Keep it running**: a bare `node` process dies with whatever console killed
+  node. On Windows register it as a logon task (auto-starts at sign-in,
+  hidden, auto-restarts on failure):
+
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File gateway\install-task.ps1     # install + start
+  powershell -ExecutionPolicy Bypass -File gateway\install-task.ps1 -Status
+  powershell -ExecutionPolicy Bypass -File gateway\install-task.ps1 -Remove
+  ```
+
+  See `gateway/README.md` for the Linux systemd equivalent.
 - **Point your NPS TCP tunnel at `127.0.0.1:3081`**, not at dsh directly. The
   gateway checks the PIN session cookie on every HTTP request and every
   WebSocket handshake (the two dsh event streams).
@@ -116,3 +127,24 @@ node dsh-gateway.mjs --listen 3081 --target 127.0.0.1:3080
 - `ui-mobile/e2e/mobile.mjs` is a Playwright smoke test that drives the mobile
   shell and the gateway against a live `dsh web` (`DSH_GATEWAY=1` to exercise
   the proxy).
+
+## 8. Troubleshooting
+
+**`failed to apply loader entry … slot "settings.plugin.item" is not declared`**
+— older `ui-mobile` copies registered the gateway-PIN card without declaring
+`@deepseek-ai/dsh-client-ui-settings-plugins` as a loader-level inject, so the
+slot the card registers into could resolve before its owner loaded, failing the
+whole plugin. Fixed in this repo's `ui-mobile/package.json` (`dsh.client.inject`);
+re-copy `ui-mobile/` over your checkout's copy and restart `dsh web`.
+
+**The phone renders the app shell but every list is empty** — that is dsh's
+`/api` trust fence, not missing data: non-loopback `Host` headers are answered
+403 before any RPC or event-stream upgrade, so the page loads (static assets)
+while sessions and workspaces never arrive. The §4 `trustedHosts` row is
+mandatory for public access. After adding it and restarting `dsh web`, the
+WebSocket upgrade for `/api/events.mux` must answer `101`, not `403`, under
+your public Host.
+
+**The gateway dies whenever `dsh web` restarts** — a bare `node` process dies
+with whatever console killed node. Supervise it: `gateway\install-task.ps1`
+(§6) on Windows, or the systemd unit in `gateway/README.md` on Linux.
