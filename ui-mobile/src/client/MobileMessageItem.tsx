@@ -2,10 +2,12 @@
  * One message row in the mobile flow. Renders a finalized conversation node
  * (user / assistant / tool card / command / notices), a streaming assistant
  * partial, or a running tool call — the three shapes the chat and details
- * pages surface. Markdown stays out on purpose: pre-wrapped plain text reads
- * cleanly on a phone and keeps the plugin free of the desktop render stack.
+ * pages surface. Assistant text renders through the shared MarkdownText
+ * primitive (GFM headings/bold/lists/code, sanitized); user bubbles stay
+ * plain text.
  */
 import { useState } from 'react'
+import { MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
   AssistantBlock, CommandNode, ConversationNode, PartialAssistant,
   RunningToolCall, ToolResultNode,
@@ -54,7 +56,11 @@ function AssistantBubble(props: {
           </details>
         )}
         {texts.map((block, index) => (
-          <p key={index} className={css.assistantText}>{block.text}</p>
+          <MarkdownText
+            key={index}
+            text={block.text}
+            streaming={props.streaming === true}
+          />
         ))}
         {toolChips.length > 0 && (
           <div className={css.toolChips}>
