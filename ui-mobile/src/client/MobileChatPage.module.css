@@ -112,7 +112,8 @@
 }
 
 .input {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
   resize: none;
   max-height: 120px;
   padding: 10px 14px;
@@ -136,14 +137,15 @@
 
 .sendButton,
 .stopButton {
-  flex: none;
+  flex: 0 0 auto;
   height: 40px;
-  padding: 0 18px;
+  padding: 0 12px;
   border: none;
   border-radius: 20px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .sendButton {

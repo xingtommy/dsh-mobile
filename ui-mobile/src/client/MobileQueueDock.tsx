@@ -23,6 +23,11 @@ export function MobileQueueDock(props: Props) {
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
 
+  // Only genuinely queued rows are actionable; 'steering'/'context' rows are
+  // already being delivered. Match the desktop dock, which filters the same way.
+  const rows = queue.filter(item => item.placement === 'queued')
+  if (rows.length === 0) return null
+
   const startEdit = (item: QueuedMessage): void => {
     if (item.text === null) return
     setEditingId(item.id)
@@ -54,13 +59,11 @@ export function MobileQueueDock(props: Props) {
       .catch(() => { /* the resolved frame drops the row */ })
   }
 
-  const mutating = (item: QueuedMessage): boolean => item.placement === 'queued'
-
   return (
     <div className={css.dock}>
       <div className={css.title}>{t('queue.title')}</div>
       <div className={css.rows}>
-        {queue.map(item => (
+        {rows.map(item => (
           <div key={item.id} className={css.row}>
             {editingId === item.id
               ? (
@@ -84,22 +87,20 @@ export function MobileQueueDock(props: Props) {
               : (
                 <>
                   <div className={css.preview}>{item.preview}</div>
-                  {mutating(item) && (
-                    <div className={css.actions}>
-                      {item.text !== null && (
-                        <button className={css.linkButton} onClick={() => startEdit(item)}>{t('queue.edit')}</button>
-                      )}
-                      <button className={css.linkButton} onClick={() => remove(item)}>{t('queue.remove')}</button>
-                      <button
-                        className={css.primaryButton}
-                        disabled={!running}
-                        title={t('queue.steerUnavailable')}
-                        onClick={() => steer(item)}
-                      >
-                        {t('queue.steer')}
-                      </button>
-                    </div>
-                  )}
+                  <div className={css.actions}>
+                    {item.text !== null && (
+                      <button className={css.linkButton} onClick={() => startEdit(item)}>{t('queue.edit')}</button>
+                    )}
+                    <button className={css.linkButton} onClick={() => remove(item)}>{t('queue.remove')}</button>
+                    <button
+                      className={css.primaryButton}
+                      disabled={!running}
+                      title={t('queue.steerUnavailable')}
+                      onClick={() => steer(item)}
+                    >
+                      {t('queue.steer')}
+                    </button>
+                  </div>
                 </>
               )}
           </div>
