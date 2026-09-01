@@ -4,6 +4,12 @@
 
 ### Added
 
+- **ui-mobile**: assistant messages now render as markdown. Assistant text
+  blocks and the streaming partial go through the shared MarkdownText
+  primitive (GFM headings/bold/lists/code, sanitized, streaming-aware)
+  instead of pre-wrapped plain text; user bubbles stay plain. Previously
+  `##` headings and bold showed as raw markdown characters on the phone.
+
 - **ui-mobile**: pending host interactions (ask-user question batches and tool
   approvals) now render in the mobile chat page. The session face snapshot
   already exposes `pending: readonly PendingInteraction[]`; the new
