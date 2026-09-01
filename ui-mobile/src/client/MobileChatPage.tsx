@@ -6,11 +6,12 @@
  * here directly once the session's scope is listed.
  */
 import { useEffect, useRef, useState } from 'react'
-import type { ConversationNode, PendingInteraction, RunningToolCall, SessionId } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ConversationNode, PendingInteraction, QueuedMessage, RunningToolCall, SessionId } from '@deepseek-ai/dsh-client-runtime/client'
 import type { MobilePageProps } from './MobileShell.tsx'
 import { MobileChatMenu } from './MobileChatMenu.tsx'
 import { MobileMessageItem } from './MobileMessageItem.tsx'
 import { MobilePendingPanel } from './MobilePendingPanel.tsx'
+import { MobileQueueDock } from './MobileQueueDock.tsx'
 import { goBack, navigateDetails } from './useMobileNav.ts'
 import { useSnapshot } from './useSnapshot.ts'
 import css from './MobileChatPage.module.css'
@@ -22,6 +23,7 @@ interface Props extends MobilePageProps {
 const EMPTY_NODES: readonly ConversationNode[] = []
 const EMPTY_CALLS: readonly RunningToolCall[] = []
 const EMPTY_PENDING: readonly PendingInteraction[] = []
+const EMPTY_QUEUE: readonly QueuedMessage[] = []
 
 /** One conversation page of the page stack. */
 export function MobileChatPage(props: Props) {
@@ -52,6 +54,7 @@ export function MobileChatPage(props: Props) {
   const openState = snap?.openState
   const hasMore = snap?.hasMore === true
   const pendingInteractions = snap?.pending ?? EMPTY_PENDING
+  const queueItems = snap?.queue ?? EMPTY_QUEUE
 
   const onScroll = (): void => {
     const el = scrollerRef.current
@@ -111,6 +114,10 @@ export function MobileChatPage(props: Props) {
 
       {snap !== undefined && pendingInteractions.length > 0 && (
         <MobilePendingPanel pending={pendingInteractions} runningCalls={runningCalls} t={t} />
+      )}
+
+      {snap !== undefined && queueItems.length > 0 && face !== undefined && (
+        <MobileQueueDock queue={queueItems} running={running} face={face} t={t} />
       )}
 
       {face !== undefined && openState === 'open' && (

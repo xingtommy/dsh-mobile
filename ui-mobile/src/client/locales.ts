@@ -118,6 +118,13 @@ export const zh = {
   'pending.question.recommended': '推荐',
   'pending.question.incomplete': '还有未回答的问题：请每题选择或填写（或跳过）',
   'pending.question.cancel': '关闭并取消',
+  'queue.title': '排队中',
+  'queue.edit': '编辑',
+  'queue.save': '保存',
+  'queue.cancel': '取消',
+  'queue.remove': '删除',
+  'queue.steer': '插话发送',
+  'queue.steerUnavailable': '仅运行中可插话发送',
 }
 
 /** English dictionary (every key mirrored). */
@@ -234,6 +241,13 @@ export const en: Record<keyof typeof zh, string> = {
   'pending.question.recommended': 'Recommended',
   'pending.question.incomplete': 'Some questions are unanswered: choose or fill in each one (or skip)',
   'pending.question.cancel': 'Close and cancel',
+  'queue.title': 'Queue',
+  'queue.edit': 'Edit',
+  'queue.save': 'Save',
+  'queue.cancel': 'Cancel',
+  'queue.remove': 'Remove',
+  'queue.steer': 'Steer',
+  'queue.steerUnavailable': 'Steer is available only while the agent is running',
 }
 
 /** Namespace keys owned by this plugin. */

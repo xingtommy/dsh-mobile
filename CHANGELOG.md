@@ -4,6 +4,12 @@
 
 ### Added
 
+- **ui-mobile**: queue dock in the chat page, mirroring the desktop inbox.
+  Queued messages (including messages the user sent while the agent was busy)
+  now render as rows with per-row Edit (in place, text rows), Remove, and
+  Steer-send (running only), all through the same `updateQueue` protocol the
+  desktop dock uses. Previously the mobile shell had no visible queue at all.
+
 - **ui-mobile**: interjection ("插话") from the mobile chat page. While the
   agent is running the composer now shows both an Interject button and Stop:
   sending while running goes through `prompt(content, 'steer')` so the message
