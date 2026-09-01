@@ -103,12 +103,37 @@
 
 .composer {
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
   gap: 8px;
   padding: 10px 12px;
   padding-bottom: max(10px, env(safe-area-inset-bottom));
   border-top: 1px solid var(--dsw-alias-border-l1);
   background: var(--dsw-alias-bg-layer-1);
+}
+
+/* Running: full-width input on top, actions row below. */
+.inputFull {
+  width: 100%;
+}
+
+.actionRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.modeToggle {
+  flex: 0 0 auto;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 18px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, inherit);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .input {
@@ -138,6 +163,7 @@
 .sendButton,
 .stopButton {
   flex: 0 0 auto;
+  align-self: flex-end;
   height: 40px;
   padding: 0 12px;
   border: none;

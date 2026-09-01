@@ -34,6 +34,8 @@ export function MobileChatPage(props: Props) {
   const snap = useSnapshot(face)
   const [text, setText] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
+  // While running the user can queue a message (default) or interject (steer).
+  const [sendMode, setSendMode] = useState<'queue' | 'steer'>('queue')
   const scrollerRef = useRef<HTMLDivElement | null>(null)
   const nearBottomRef = useRef(true)
 
@@ -75,9 +77,8 @@ export function MobileChatPage(props: Props) {
   const send = (): void => {
     const content = text.trim()
     if (content === '' || face === undefined) return
-    // While the agent is running, send is an interjection (steer): the message
-    // jumps the queue and the host routes it into the live turn.
-    void face.prompt([{ type: 'text', text: content }], running ? 'steer' : 'queue')
+    // While running the user chooses: queue (default) or interject (steer).
+    void face.prompt([{ type: 'text', text: content }], running ? sendMode : 'queue')
     setText('')
   }
 
@@ -122,28 +123,55 @@ export function MobileChatPage(props: Props) {
 
       {face !== undefined && openState === 'open' && (
         <footer className={css.composer}>
-          <textarea
-            className={css.input}
-            rows={1}
-            placeholder={t('chat.input.placeholder')}
-            value={text}
-            disabled={composerDisabled}
-            onChange={event => setText(event.target.value)}
-            onKeyDown={event => {
-              if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault()
-                send()
-              }
-            }}
-          />
           {running
             ? (
               <>
-                <button className={css.sendButton} disabled={text.trim() === ''} onClick={send}>{t('chat.steer')}</button>
-                <button className={css.stopButton} onClick={stop}>{t('chat.stop')}</button>
+                <textarea
+                  className={`${css.input} ${css.inputFull}`}
+                  rows={1}
+                  placeholder={t('chat.input.placeholder')}
+                  value={text}
+                  disabled={composerDisabled}
+                  onChange={event => setText(event.target.value)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                      event.preventDefault()
+                      send()
+                    }
+                  }}
+                />
+                <div className={css.actionRow}>
+                  <button
+                    type="button"
+                    className={css.modeToggle}
+                    onClick={() => setSendMode(mode => mode === 'queue' ? 'steer' : 'queue')}
+                  >
+                    {sendMode === 'queue' ? t('chat.queueMode') : t('chat.steer')}
+                  </button>
+                  <button className={css.sendButton} disabled={text.trim() === ''} onClick={send}>{t('chat.send')}</button>
+                  <button className={css.stopButton} onClick={stop}>{t('chat.stop')}</button>
+                </div>
               </>
             )
-            : <button className={css.sendButton} disabled={text.trim() === ''} onClick={send}>{t('chat.send')}</button>}
+            : (
+              <>
+                <textarea
+                  className={css.input}
+                  rows={1}
+                  placeholder={t('chat.input.placeholder')}
+                  value={text}
+                  disabled={composerDisabled}
+                  onChange={event => setText(event.target.value)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                      event.preventDefault()
+                      send()
+                    }
+                  }}
+                />
+                <button className={css.sendButton} disabled={text.trim() === ''} onClick={send}>{t('chat.send')}</button>
+              </>
+            )}
         </footer>
       )}
 
