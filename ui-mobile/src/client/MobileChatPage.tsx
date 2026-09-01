@@ -34,8 +34,6 @@ export function MobileChatPage(props: Props) {
   const snap = useSnapshot(face)
   const [text, setText] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
-  // While running the user can queue a message (default) or interject (steer).
-  const [sendMode, setSendMode] = useState<'queue' | 'steer'>('queue')
   const scrollerRef = useRef<HTMLDivElement | null>(null)
   const nearBottomRef = useRef(true)
 
@@ -77,8 +75,9 @@ export function MobileChatPage(props: Props) {
   const send = (): void => {
     const content = text.trim()
     if (content === '' || face === undefined) return
-    // While running the user chooses: queue (default) or interject (steer).
-    void face.prompt([{ type: 'text', text: content }], running ? sendMode : 'queue')
+    // While running a send queues into the inbox; steer a specific queued
+    // message from the queue dock's per-row 插话发送 instead.
+    void face.prompt([{ type: 'text', text: content }], 'queue')
     setText('')
   }
 
@@ -141,13 +140,6 @@ export function MobileChatPage(props: Props) {
                   }}
                 />
                 <div className={css.actionRow}>
-                  <button
-                    type="button"
-                    className={css.modeToggle}
-                    onClick={() => setSendMode(mode => mode === 'queue' ? 'steer' : 'queue')}
-                  >
-                    {sendMode === 'queue' ? t('chat.queueMode') : t('chat.steer')}
-                  </button>
                   <button className={css.sendButton} disabled={text.trim() === ''} onClick={send}>{t('chat.send')}</button>
                   <button className={css.stopButton} onClick={stop}>{t('chat.stop')}</button>
                 </div>
