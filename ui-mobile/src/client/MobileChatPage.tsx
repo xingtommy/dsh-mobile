@@ -72,7 +72,9 @@ export function MobileChatPage(props: Props) {
   const send = (): void => {
     const content = text.trim()
     if (content === '' || face === undefined) return
-    void face.prompt([{ type: 'text', text: content }], 'queue')
+    // While the agent is running, send is an interjection (steer): the message
+    // jumps the queue and the host routes it into the live turn.
+    void face.prompt([{ type: 'text', text: content }], running ? 'steer' : 'queue')
     setText('')
   }
 
@@ -128,7 +130,12 @@ export function MobileChatPage(props: Props) {
             }}
           />
           {running
-            ? <button className={css.stopButton} onClick={stop}>{t('chat.stop')}</button>
+            ? (
+              <>
+                <button className={css.sendButton} disabled={text.trim() === ''} onClick={send}>{t('chat.steer')}</button>
+                <button className={css.stopButton} onClick={stop}>{t('chat.stop')}</button>
+              </>
+            )
             : <button className={css.sendButton} disabled={text.trim() === ''} onClick={send}>{t('chat.send')}</button>}
         </footer>
       )}

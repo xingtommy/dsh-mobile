@@ -4,6 +4,12 @@
 
 ### Added
 
+- **ui-mobile**: interjection ("插话") from the mobile chat page. While the
+  agent is running the composer now shows both an Interject button and Stop:
+  sending while running goes through `prompt(content, 'steer')` so the message
+  jumps the queue into the live turn, matching the desktop composer's
+  steer-while-running behaviour; idle sends stay `queue`.
+
 - **ui-mobile**: assistant messages now render as markdown. Assistant text
   blocks and the streaming partial go through the shared MarkdownText
   primitive (GFM headings/bold/lists/code, sanitized, streaming-aware)
