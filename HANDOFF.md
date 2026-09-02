@@ -4,6 +4,39 @@
 > **started but not finished**. A new session should read this first, then act on the
 > `v2` work. Everything below is current and verified unless marked TODO.
 
+## ⚡ FIRST — read these before anything else (new session got stuck here)
+
+1. **git is blocked by the DSH file sandbox by default.** `git.exe` fails with
+   `Access is denied` (even `git --version`). This is **expected**, not a broken install.
+   **Every denied git command must be retried once with `sandbox_permissions:
+   danger-full-access` + a one-sentence justification.** Example:
+   ```
+   git checkout v2            # → Access is denied
+   git checkout v2            # retry with sandbox_permissions: danger-full-access, justification:
+                              #   "需要一个 git 可用的沙箱来切换 v2 分支并提交，git 必须能运行"
+   ```
+   If the session's approval policy is `never` (escalation disabled), git **cannot run**:
+   then do the **edits + local verification only** in the alpha.3 worktree (git-less) and
+   hand the dsh-mobile repo commits to a git-capable session/machine, or reconfigure the
+   session to allow git.
+
+2. **The `v2` branch must be checked out to see the v2 work.** `HANDOFF.md` (this file) is
+   on `main` and contains the full plan (see §3). But the actual migrated files
+   (`ui-mobile/package.json`, `ui-mobile/tsconfig.json`), `v2-SPEC.md`, and `v2-ROADMAP.md`
+   live on the **`v2` branch**. After git works, run `git checkout v2`. (Plan info is inline
+   in §3 even on `main`; the committed file state needs the branch.)
+
+3. **Workspace recommendation:** use `G:\xing\YYE\check_104` — it contains BOTH the repo
+   (`dsh-mobile`, source + commits) and the alpha.3 worktree (`alpha3-worktree`, local
+   verification). One workspace root avoids cross-root sandbox friction.
+
+4. **Environment gotchas:**
+   - pnpm must be invoked as **`pnpm.cmd`** (ExecutionPolicy blocks `pnpm.ps1`).
+   - PowerShell 5.1 strips inner double quotes when passing args to native exes → avoid
+     inline `node -e '...'`; use file scripts (`scripts/compat-patch.mjs`).
+   - **Never touch `G:\xing\deepseek-harness`** (the v1 checkout, stable line). All v2 work
+     is in the `dsh-mobile` repo + `alpha3-worktree`.
+
 ---
 
 ## 1. What this project is
