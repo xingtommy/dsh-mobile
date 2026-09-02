@@ -36,3 +36,38 @@ contract by reading the package's `/client` exports before wiring (alpha is movi
 ## Open items (read before wiring)
 - `ui-conversation` composer chain + queue contract in alpha.3 (did `conversation.composer`/queue survive the restructure?).
 - `ui-approval` / `ui-user-questions` carrier shapes under the `SessionPendingInteractionMap` merge model.
+
+## Round-2 confirmed: alpha.3 session/conversation split
+
+Confirmed against `dsh-v0.1.2-alpha.3` source:
+
+- **`SessionSnapshot`** (session lifecycle + queue + submission state) lives in
+  `@deepseek-ai/dsh-api-session-controller` (`packages/api/session-controller/src/client/contract/snapshot.ts`).
+  `queue: QueuedMessage[]` moved here; **`pending` is GONE** — replaced by
+  `pendingSubmissions` (local prompt-submission echoes, a different concept).
+  Other fields: `running`, `subagent`, `removed`, `openState`, `openError`,
+  `hasMore`, `loadingOlder`, `promptError`, `blank`, `lastAgentError`,
+  `promptAttempted`, `awaitingFirstTurn`.
+- **`QueuedMessage`** type also moved to `dsh-api-session-controller` (was runtime).
+- **Conversation content** (`nodes` / `partial` / `runningCalls`) is a SEPARATE
+  snapshot in `@deepseek-ai/dsh-client-ui-conversation` → `src/client/contract/snapshot.ts`
+  (SessionSnapshot deliberately excludes Conversation target data).
+- **Pending interactions** (ask-user / approval) are NOT a snapshot field: they are
+  `@deepseek-ai/dsh-client-ui-session`'s `useSessionPendingInteraction`
+  (global `SnapshotSelectorHook<SessionPendingInteractionSnapshot>` =
+  `Map<SessionId, SessionPendingInteraction>`), fed by a declaration-merged
+  `SessionPendingInteractionMap` (domain packages publish via
+  `PendingInteractionPublisher`).
+- **Prop scope**: `useSession` / `sessionId` / `useProjection` are
+  `SessionStandardProps` (session-scoped slot props only); `useSessions` /
+  `useSessionPendingInteraction` are `GlobalStandardProps`. A root-scoped shell
+  gets the global ones; per-session snapshot reads need the session scope or the
+  session-controller binding.
+
+### Consequence for the rewrite
+The mobile v1 read `snap.pending`/`snap.queue`/`snap.nodes` off ONE runtime
+conversation snapshot. Alpha.3 splits this across three homes (session snapshot
+for queue/state, ui-conversation snapshot for chat content, ui-session pending
+interactions), so `adapt/harness.ts` and the three pages must be restructured —
+not just retyped. This is the substantive v2 work; each step is verified by the
+alpha.3 CI on the `v2` branch.
