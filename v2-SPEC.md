@@ -71,3 +71,24 @@ for queue/state, ui-conversation snapshot for chat content, ui-session pending
 interactions), so `adapt/harness.ts` and the three pages must be restructured —
 not just retyped. This is the substantive v2 work; each step is verified by the
 alpha.3 CI on the `v2` branch.
+
+## Round-3 confirmed: type homes for the mobile imports
+
+Resolved against `dsh-v0.1.2-alpha.3` source (the exact import retarget table):
+
+| v1 symbol (from `@deepseek-ai/dsh-client-runtime/client`) | alpha.3 home |
+|---|---|
+| `SessionFace` | `@deepseek-ai/dsh-api-session-controller` (`src/client/contract/session.ts`) |
+| `ConversationNode` / `RunningToolCall` | `@deepseek-ai/dsh-client-ui-conversation` (`src/client/contract/conversation.ts` / `records.ts`) |
+| `SessionId` | `@deepseek-ai/dsh-session/types` (`Branded<'SessionId'>`) |
+| `WorkspaceId` | `@deepseek-ai/dsh-workspace` |
+| `PendingInteraction` | `@deepseek-ai/dsh-client-ui-session` (`SessionPendingInteraction`, declaration-merged map) |
+| `QueuedMessage` | `@deepseek-ai/dsh-api-session-controller` (`contract/snapshot.ts`) |
+| `ConnectionHandle` | changed — **no `.api`** in alpha.3 (`MobileChatMenu` `connection.api.sessions.*` breaks) |
+| `ConversationSnapshot` (nodes/partial/runningCalls) | `@deepseek-ai/dsh-client-ui-conversation` (`contract/snapshot.ts`) |
+
+Local verification loop is ready (alpha.3 worktree + `build:lib:host` done):
+`pnpm exec tsc -b packages/client/ui-mobile` lists the exact remaining errors; the
+error catalog is dominated by the `dsh-client-runtime` module import (6 files) plus
+the downstream `{}`/implicit-any cascade, and the alpha.3 `ConnectionHandle.api`
+change.
