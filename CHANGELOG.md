@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.0
+
+- **v1 line**: the overlay targets **DeepSeek Harness `dsh-v0.1.1-rc.2`**.
+  The compatibility matrix guards this exact release (`build:lib` + ui-mobile
+  typecheck). The overlay does **not** target `dsh-v0.1.2-alpha.3`, which
+  removed/repackaged the core `@deepseek-ai/dsh-client-runtime` package
+  (split into `client-store` / `ui-approval` / `ui-chat` / `ui-session`); the
+  v2 line covers that separately.
+
 ## 2026-08-31
 
 ### Added

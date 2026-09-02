@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-mobile",
   "description": "Mobile-first UI plugin: a dedicated full-screen page-stack shell (workspace/session home, chat, task details, settings) that shadows the desktop frame on small viewports",
-  "version": "0.1.1-rc.2",
+  "version": "1.0.0",
   "publishConfig": {
     "access": "public"
   },
