@@ -33,28 +33,10 @@ jobs:
         with:
           version: 11
 
-      # Materialize the overlay as a workspace member, mirroring INSTALL.md §1-2.
-      # The harness tsconfig/package files are JSONC/plain-JSON; patch by string
-      # to avoid comment-sensitive parsing.
+      # Materialize the overlay as a workspace member (INSTALL.md §1-2). The
+      # patch is a file: no inline shell quotes for different shells to mangle.
       - name: Install overlay into the harness checkout
-        run: |
-          cp -r overlay/ui-mobile harness/packages/client/ui-mobile
-          node -e '
-            const fs = require("fs");
-            // tsconfig.client.json is JSONC (comments): insert the reference by string.
-            let ts = fs.readFileSync("harness/tsconfig.client.json", "utf8");
-            if (!ts.includes("./packages/client/ui-mobile")) {
-              ts = ts.replace(
-                '{ "path": "./packages/client/ui-message-feedback" },',
-                '{ "path": "./packages/client/ui-message-feedback" },\n    { "path": "./packages/client/ui-mobile" },'
-              );
-              fs.writeFileSync("harness/tsconfig.client.json", ts);
-            }
-            // web-app bundle dependency (plain JSON).
-            const wp = JSON.parse(fs.readFileSync("harness/packages/bundle/web-app/package.json", "utf8"));
-            wp.dependencies["@deepseek-ai/dsh-client-ui-mobile"] = "workspace:^";
-            fs.writeFileSync("harness/packages/bundle/web-app/package.json", JSON.stringify(wp, null, 2) + "\n");
-          '
+        run: node overlay/scripts/compat-patch.mjs harness overlay
 
       - name: Install
         working-directory: harness
