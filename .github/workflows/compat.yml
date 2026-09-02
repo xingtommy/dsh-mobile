@@ -1,0 +1,72 @@
+name: ui-mobile compatibility
+
+# Verify the ui-mobile overlay still builds and typechecks against each
+# supported DeepSeek Harness release. A version bump is only "done" when this
+# matrix stays green — so a harness change that would break the overlay is
+# caught here, not by the first user who upgrades.
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  build:
+    name: dsh ${{ matrix.harness }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        harness: [dsh-v0.1.1-rc.2, dsh-v0.1.2-alpha.3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: overlay
+
+      - uses: actions/checkout@v4
+        with:
+          repository: deepseek-ai/deepseek-harness
+          ref: ${{ matrix.harness }}
+          path: harness
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: harness/pnpm-lock.yaml
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      # Materialize the overlay as a workspace member, mirroring INSTALL.md §1-2.
+      # The harness tsconfig/package files are JSONC/plain-JSON; patch by string
+      # to avoid comment-sensitive parsing.
+      - name: Install overlay into the harness checkout
+        run: |
+          cp -r overlay/ui-mobile harness/packages/client/ui-mobile
+          node -e '
+            const fs = require("fs");
+            // tsconfig.client.json is JSONC (comments): insert the reference by string.
+            let ts = fs.readFileSync("harness/tsconfig.client.json", "utf8");
+            if (!ts.includes("./packages/client/ui-mobile")) {
+              ts = ts.replace(
+                '{ "path": "./packages/client/ui-message-feedback" },',
+                '{ "path": "./packages/client/ui-message-feedback" },\n    { "path": "./packages/client/ui-mobile" },'
+              );
+              fs.writeFileSync("harness/tsconfig.client.json", ts);
+            }
+            // web-app bundle dependency (plain JSON).
+            const wp = JSON.parse(fs.readFileSync("harness/packages/bundle/web-app/package.json", "utf8"));
+            wp.dependencies["@deepseek-ai/dsh-client-ui-mobile"] = "workspace:^";
+            fs.writeFileSync("harness/packages/bundle/web-app/package.json", JSON.stringify(wp, null, 2) + "\n");
+          '
+
+      - name: Install
+        working-directory: harness
+        run: pnpm install
+
+      - name: Build client bundle
+        working-directory: harness
+        run: pnpm run build:lib:client
+
+      # Belt-and-suspenders: the plugin's own package typechecks in isolation too.
+      - name: Typecheck ui-mobile
+        working-directory: harness
+        run: pnpm exec tsc -b packages/client/ui-mobile

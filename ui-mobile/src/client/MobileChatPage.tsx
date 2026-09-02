@@ -12,6 +12,7 @@ import { MobileChatMenu } from './MobileChatMenu.tsx'
 import { MobileMessageItem } from './MobileMessageItem.tsx'
 import { MobilePendingPanel } from './MobilePendingPanel.tsx'
 import { MobileQueueDock } from './MobileQueueDock.tsx'
+import { toHarnessSession } from './adapt/harness.ts'
 import { goBack, navigateDetails } from './useMobileNav.ts'
 import { useSnapshot } from './useSnapshot.ts'
 import css from './MobileChatPage.module.css'
@@ -31,6 +32,10 @@ export function MobileChatPage(props: Props) {
   // Re-renders on list changes so a deep link resolves once the scope is minted.
   const sessions = props.useSessions(s => s)
   const face = binding(sessionId)
+  // The reactive snapshot/projections ride the contract SessionFace; actions
+  // (prompt/cancel/loadOlder) route through the contract adapter so a harness
+  // version change is one file.
+  const session = face === undefined ? undefined : toHarnessSession(face)
   const snap = useSnapshot(face)
   const [text, setText] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
@@ -69,20 +74,20 @@ export function MobileChatPage(props: Props) {
   })
 
   const loadOlder = (): void => {
-    if (face !== undefined) void face.loadOlder()
+    if (session !== undefined) void session.loadOlder()
   }
 
   const send = (): void => {
     const content = text.trim()
-    if (content === '' || face === undefined) return
+    if (content === '' || session === undefined) return
     // While running a send queues into the inbox; steer a specific queued
     // message from the queue dock's per-row 插话发送 instead.
-    void face.prompt([{ type: 'text', text: content }], 'queue')
+    void session.prompt([{ type: 'text', text: content }], 'queue')
     setText('')
   }
 
   const stop = (): void => {
-    if (face !== undefined) void face.cancel()
+    if (session !== undefined) void session.cancel()
   }
 
   const composerDisabled = face === undefined || openState !== 'open' || snap?.removed === true
@@ -116,8 +121,8 @@ export function MobileChatPage(props: Props) {
         <MobilePendingPanel pending={pendingInteractions} runningCalls={runningCalls} t={t} />
       )}
 
-      {snap !== undefined && queueItems.length > 0 && face !== undefined && (
-        <MobileQueueDock queue={queueItems} running={running} face={face} t={t} />
+      {snap !== undefined && queueItems.length > 0 && session !== undefined && (
+        <MobileQueueDock queue={queueItems} running={running} face={session} t={t} />
       )}
 
       {face !== undefined && openState === 'open' && (
