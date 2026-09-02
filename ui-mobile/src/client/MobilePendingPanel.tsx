@@ -11,6 +11,7 @@ import { useState, type ChangeEvent } from 'react'
 import { MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PendingInteraction, RunningToolCall } from '@deepseek-ai/dsh-client-runtime/client'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+import { answerApproval, answerQuestion, cancelQuestion } from './adapt/harness.ts'
 import css from './MobilePendingPanel.module.css'
 
 type MobileT = TranslateNS<'mobile'>
@@ -77,10 +78,7 @@ function ApprovalCard(props: {
   const [answered, setAnswered] = useState(false)
   const answer = (outcome: 'allowed-once' | 'rejected'): void => {
     setAnswered(true)
-    void props.wait.respond({
-      ok: true,
-      value: { sessionId: props.wait.sessionId, approvalId: props.wait.payload.approvalId, outcome },
-    }).catch(() => { setAnswered(false) })
+    void answerApproval(props.wait, outcome).catch(() => { setAnswered(false) })
   }
   return (
     <div className={css.card} data-pending-key={props.wait.key}>
@@ -163,24 +161,17 @@ function QuestionCard(props: {
 
   const submitDrafts = (values: DraftAnswer[]): void => {
     setBusy(true)
-    void props.wait.respond({
-      ok: true,
-      value: {
-        sessionId: props.wait.sessionId,
-        answer: {
-          answers: questions.map((item, itemIndex) => {
-            const value = values[itemIndex] as DraftAnswer
-            if (value.skipped) return { id: item.id, selected: [] }
-            const custom = value.custom.trim()
-            return {
-              id: item.id,
-              selected: custom === '' || item.multiSelect === true ? value.selected : [],
-              ...(custom === '' ? {} : { custom }),
-            }
-          }),
-        },
-      },
-    }).catch((cause: unknown) => {
+    const answers = questions.map((item, itemIndex) => {
+      const value = values[itemIndex] as DraftAnswer
+      if (value.skipped) return { id: item.id, selected: [] }
+      const custom = value.custom.trim()
+      return {
+        id: item.id,
+        selected: custom === '' || item.multiSelect === true ? value.selected : [],
+        ...(custom === '' ? {} : { custom }),
+      }
+    })
+    void answerQuestion(props.wait, answers).catch((cause: unknown) => {
       setBusy(false)
       setError(cause instanceof Error ? cause.message : String(cause))
     })
@@ -188,10 +179,7 @@ function QuestionCard(props: {
 
   const cancelFlow = (): void => {
     setBusy(true)
-    void props.wait.respond({
-      ok: false,
-      error: { code: 'cancelled', message: 'the user closed this question request', details: {} },
-    }).catch(() => { setBusy(false) })
+    void cancelQuestion(props.wait).catch(() => { setBusy(false) })
   }
 
   return (

@@ -29,6 +29,46 @@ import type {
   SessionFace,
 } from '@deepseek-ai/dsh-client-runtime/client'
 
+/** Narrowed pending-interaction carriers. */
+export type ApprovalWait = Extract<PendingInteraction, { kind: 'approval' }>
+export type QuestionWait = Extract<PendingInteraction, { kind: 'question' }>
+
+/** Deliver an approval decision (contract: the pending-interaction respond protocol). */
+export async function answerApproval(
+  wait: ApprovalWait,
+  outcome: 'allowed-once' | 'rejected',
+): Promise<void> {
+  const receipt = await wait.respond({
+    ok: true,
+    value: { sessionId: wait.sessionId, approvalId: wait.payload.approvalId, outcome },
+  })
+  if (!receipt.accepted) throw new Error(`approval response rejected: ${receipt.reason}`)
+}
+
+/**
+ * Deliver a question answer batch. `answers` mirrors the desktop PendingQuestion
+ * wire shape (per question: id, selected labels, optional custom free text).
+ */
+export async function answerQuestion(
+  wait: QuestionWait,
+  answers: readonly { id: string; selected: string[]; custom?: string }[],
+): Promise<void> {
+  const receipt = await wait.respond({
+    ok: true,
+    value: { sessionId: wait.sessionId, answer: { answers } },
+  })
+  if (!receipt.accepted) throw new Error(`question response rejected: ${receipt.reason}`)
+}
+
+/** Cancel a pending question request (the host resolves the tool call as cancelled). */
+export async function cancelQuestion(wait: QuestionWait): Promise<void> {
+  const receipt = await wait.respond({
+    ok: false,
+    error: { code: 'cancelled', message: 'the user closed this question request', details: {} },
+  })
+  if (!receipt.accepted) throw new Error(`question cancellation rejected: ${receipt.reason}`)
+}
+
 /** The narrow session-face facade the mobile pages use (contract `SessionFace`). */
 export interface HarnessSession {
   /** Load an older page of the conversation window (contract: `SessionFace.loadOlder`). */
