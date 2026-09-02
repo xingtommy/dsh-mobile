@@ -5,15 +5,17 @@
  * the single authority for the PIN). The browser half shadows the desktop frame
  * on small viewports — see src/client.
  */
-import { Context } from '@deepseek-ai/cordis'
+import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import { settingsNamespace } from '@deepseek-ai/dsh-settings'
+// Type-only: pulls the settings provider's Context merge (ctx.settings) into
+// the node program.
+import type {} from '@deepseek-ai/dsh-settings'
 
 /** Settings namespace anchoring the gateway-PIN card in the plugins section. */
 export const ACCESS_PIN_SETTINGS_NAMESPACE = 'access-pin'
 
-/** The branded namespace; the client card keys its slot entry on the same string. */
-export const ACCESS_PIN_NS = settingsNamespace(ACCESS_PIN_SETTINGS_NAMESPACE)
+/** The namespace string; the client card keys its slot entry on the same value. */
+export const ACCESS_PIN_NS = ACCESS_PIN_SETTINGS_NAMESPACE
 
 /**
  * Minimal schema. The namespace exists so the card is served to the

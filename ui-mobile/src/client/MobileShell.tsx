@@ -5,11 +5,15 @@
  * narrow-viewport load to `#/mobile`.
  */
 import { useEffect } from 'react'
-import type {
-  ObservableSnapshot, SessionFace, SessionListState, WorkspaceListState,
-} from '@deepseek-ai/dsh-client-runtime/client'
-import type { ConnectionHandle, DirectoryListing } from '@deepseek-ai/dsh-api-remotes/client'
-import type { SnapshotSelectorHook, TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { SessionFace, SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
+import type { ObservableSnapshot, SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
+import type { UseSessionPendingInteraction } from '@deepseek-ai/dsh-client-ui-session/client'
+import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
+import type { ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat/client'
+import type { ModelDirectory } from '@deepseek-ai/dsh-client-ui-model-selection/client'
+import type { DirectoryListing } from '@deepseek-ai/dsh-host-directory-picker/types'
+import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import type { LocaleSnapshot } from '@deepseek-ai/dsh-client-locale/client'
 import type { ThemeSnapshot } from '@deepseek-ai/dsh-client-ui-theme/client'
 import { MobileChatPage } from './MobileChatPage.tsx'
@@ -28,8 +32,10 @@ export interface MobileInjected {
   openSession(id: string): void
   /** The New Session flow (optional explicit workspace). */
   startSession(workspaceId?: string): void
-  /** The connection wire face: per-session model directory RPCs live here. */
-  connection: ConnectionHandle
+  /** Resolve the ui-chat `chat` view-target source for one session (undefined before staged). */
+  conversation(sessionId: SessionId): ObservableSnapshot<ChatSnapshot | undefined> | undefined
+  /** Resolve the model-directory for one session (undefined when unscoped). */
+  modelDirectory(sessionId: SessionId): ModelDirectory | undefined
   /** Register an existing host path as a Workspace. */
   createWorkspace(path: string): Promise<void>
   /** List one directory level through the Host `browse` capability. */
@@ -49,7 +55,8 @@ export interface MobileInjected {
 /** The shared props every mobile page receives. */
 export interface MobilePageProps extends MobileInjected {
   useSessions: SnapshotSelectorHook<SessionListState>
-  useWorkspaces: SnapshotSelectorHook<WorkspaceListState>
+  useWorkspaces: SnapshotSelectorHook<WorkspaceSnapshot>
+  useSessionPendingInteraction: UseSessionPendingInteraction
   t: TranslateNS<'mobile'>
 }
 

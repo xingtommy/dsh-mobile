@@ -18,6 +18,9 @@
       "path": "../ui-slots"
     },
     {
+      "path": "../ui-renderer"
+    },
+    {
       "path": "../ui-primitives"
     },
     {
@@ -52,6 +55,24 @@
     },
     {
       "path": "../../api/session-controller/tsconfig.client.json"
+    },
+    {
+      "path": "../../api/workspace-controller/tsconfig.client.json"
+    },
+    {
+      "path": "../../core/session"
+    },
+    {
+      "path": "../../host/directory-picker"
+    },
+    {
+      "path": "../ui-workspace"
+    },
+    {
+      "path": "../ui-chat"
+    },
+    {
+      "path": "../ui-model-selection"
     }
   ]
 }

@@ -3,46 +3,40 @@
  *
  * THE ONLY module in this plugin that names `@deepseek-ai/dsh-client-*` harness
  * types and the session face. Every harness touch in ui-mobile routes through
- * here so that a harness version change is a single-file edit. Follow the
- * data-access ladder in dsh's packages/client/AGENTS.md — framework hooks,
- * then a declared store, then inject callbacks — and keep each export's
- * contract basis documented.
+ * here so that a harness version change is a single-file edit.
  *
- * Contract notes (against dsh packages/client/AGENTS.md / the slot-type-chain
- * standard):
- *  - `ctx.sessions.binding(id)` and `SessionFace` are part of the exported
- *    `ISessions`/`SessionFace` contract, so reading the session face and
- *    calling `prompt`/`cancel`/`updateQueue`/`loadOlder` is sanctioned.
- *  - `ConversationSnapshot.pending` / `.queue` are read reactively through the
- *    per-session snapshot (`useSnapshot`); they are the session face's live
- *    data. The reactive read is done here so the rest of the plugin is pure
- *    presentation over plain data.
- *  - Known open contract gap (needs dsh upstream): answering an ask-user
- *    question currently reuses ui-mobile's own wire encoding rather than the
- *    `conversation.composer` chain, because the mobile shell does not dispatch
- *    that conversation-scoped slot.
+ * Contract notes (alpha.3 — @deepseek-ai/dsh-api-session-controller / ui-session):
+ *  - `ctx.sessions.binding(id)` resolves a `SessionBinding` whose `.session` is
+ *    the `SessionFace` (`ISession & ObservableSnapshot<SessionSnapshot>`), so
+ *    reading its snapshot (queue/state) and calling `prompt`/`cancel`/
+ *    `updateQueue`/`loadOlder`/`rename`/`command` is sanctioned.
+ *  - Conversation content (nodes/partial/runningCalls) is a SEPARATE ui-chat
+ *    view target (`ctx.uiConversation.binding(sessionId).target('chat')`); the
+ *    mobile pages read its `legacy` slice to keep the message flow rendering
+ *    unchanged.
+ *  - Pending interactions are NOT a snapshot field; they come from ui-session's
+ *    `useSessionPendingInteraction` (a `Map<SessionId, SessionPendingInteraction>`).
+ *    Answering routes through the domain carrier (PendingApproval / PendingQuestion).
  */
+import type { SessionFace, SessionSnapshot } from '@deepseek-ai/dsh-api-session-controller/client'
 import type {
-  PendingInteraction,
-  QueuedMessage,
-  RunningToolCall,
-  SessionFace,
-} from '@deepseek-ai/dsh-client-runtime/client'
+  ConversationNode, PartialAssistant, RunningToolCall,
+} from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { SessionPendingInteraction } from '@deepseek-ai/dsh-client-ui-session/client'
+import type { PendingApproval } from '@deepseek-ai/dsh-client-ui-approval/client'
+import type { PendingQuestion } from '@deepseek-ai/dsh-client-ui-user-questions/client'
 
-/** Narrowed pending-interaction carriers. */
-export type ApprovalWait = Extract<PendingInteraction, { kind: 'approval' }>
-export type QuestionWait = Extract<PendingInteraction, { kind: 'question' }>
+/** A pending approval carrier (kind `'approval'`). */
+export type ApprovalWait = PendingApproval
+/** A pending question carrier (kind `'question'`). */
+export type QuestionWait = PendingQuestion
 
-/** Deliver an approval decision (contract: the pending-interaction respond protocol). */
+/** Deliver an approval decision (contract: `PendingApproval.answer`). */
 export async function answerApproval(
   wait: ApprovalWait,
   outcome: 'allowed-once' | 'rejected',
 ): Promise<void> {
-  const receipt = await wait.respond({
-    ok: true,
-    value: { sessionId: wait.sessionId, approvalId: wait.payload.approvalId, outcome },
-  })
-  if (!receipt.accepted) throw new Error(`approval response rejected: ${receipt.reason}`)
+  await wait.answer(outcome)
 }
 
 /**
@@ -53,52 +47,63 @@ export async function answerQuestion(
   wait: QuestionWait,
   answers: readonly { id: string; selected: string[]; custom?: string }[],
 ): Promise<void> {
-  const receipt = await wait.respond({
-    ok: true,
-    value: { sessionId: wait.sessionId, answer: { answers } },
+  await wait.answer({
+    answers: answers.map(answer => ({
+      id: answer.id,
+      selected: answer.selected,
+      ...(answer.custom === undefined ? {} : { custom: answer.custom }),
+    })),
   })
-  if (!receipt.accepted) throw new Error(`question response rejected: ${receipt.reason}`)
 }
 
 /** Cancel a pending question request (the host resolves the tool call as cancelled). */
 export async function cancelQuestion(wait: QuestionWait): Promise<void> {
-  const receipt = await wait.respond({
-    ok: false,
-    error: { code: 'cancelled', message: 'the user closed this question request', details: {} },
-  })
-  if (!receipt.accepted) throw new Error(`question cancellation rejected: ${receipt.reason}`)
+  await wait.cancel()
 }
 
-/** The narrow session-face facade the mobile pages use (contract `SessionFace`). */
+/** The narrow session-face facade the mobile pages use (contract `ISession` verbs). */
 export interface HarnessSession {
-  /** Load an older page of the conversation window (contract: `SessionFace.loadOlder`). */
+  /** Load an older page of the conversation window (contract: `ISession.loadOlder`). */
   loadOlder(): void
-  /** Send a prompt; `mode` is `'queue' | 'steer'` (contract: `SessionFace.prompt`). */
+  /** Send a prompt; `mode` is `'queue' | 'steer'` (contract: `ISession.prompt`). */
   prompt(content: readonly { type: 'text'; text: string }[], mode: 'queue' | 'steer'): void
-  /** Cancel the running turn (contract: `SessionFace.cancel`). */
+  /** Cancel the running turn (contract: `ISession.cancel`). */
   cancel(): void
-  /** Mutate one queued item: edit / remove / steer (contract: `SessionFace.updateQueue`). */
+  /** Mutate one queued item: edit / remove / steer (contract: `ISession.updateQueue`). */
   updateQueue(
     itemId: string,
     action: { kind: 'edit'; content: readonly { type: 'text'; text: string }[] } | { kind: 'remove' } | { kind: 'steer' },
   ): Promise<{ ok: boolean; error: { code: string; message: string } }>
 }
 
-/** Sanitized conversation snapshot fields the mobile pages read. */
-export interface HarnessSnapshot {
-  readonly nodes: readonly unknown[]
-  readonly partial: unknown
-  readonly runningCalls: readonly RunningToolCall[]
-  readonly running: boolean
-  readonly promptError: unknown
-  readonly openState: unknown
-  readonly hasMore: boolean
-  readonly removed: boolean
-  readonly pending: readonly PendingInteraction[]
-  readonly queue: readonly QueuedMessage[]
-}
-
 /** Downcast a session face to the facade (the face is the contract `SessionFace`). */
 export function toHarnessSession(face: SessionFace): HarnessSession {
   return face as unknown as HarnessSession
 }
+
+// ---------------------------------------------------------------------------
+// Read-side types: the alpha.3 split means the mobile pages compose these from
+// a SessionSnapshot (lifecycle + queue), a ChatSnapshot legacy slice (nodes/
+// partial/runningCalls), and the ui-session pending map. They are kept here so
+// every page reads through the adapter.
+// ---------------------------------------------------------------------------
+
+/** Lifecycle + queue window read from the SessionFace snapshot. */
+export interface HarnessSessionView {
+  readonly running: boolean
+  readonly promptError: SessionSnapshot['promptError']
+  readonly openState: SessionSnapshot['openState']
+  readonly hasMore: boolean
+  readonly removed: boolean
+  readonly queue: SessionSnapshot['queue']
+}
+
+/** Conversation content window read from the ui-chat `chat` view target. */
+export interface HarnessConversationView {
+  readonly nodes: readonly ConversationNode[]
+  readonly partial: PartialAssistant | null
+  readonly runningCalls: readonly RunningToolCall[]
+}
+
+/** Pending-interaction window read from `useSessionPendingInteraction`. */
+export type HarnessPendingInteractions = readonly SessionPendingInteraction[]

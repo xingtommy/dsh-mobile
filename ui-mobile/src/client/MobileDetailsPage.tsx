@@ -1,10 +1,11 @@
 /**
- * Details: one conversation's task overview (status, id, workspace, agent),
- * its tool calls with expandable args/results, and the management actions
- * (rename, cancel). Reached from the chat header; back returns to the chat.
+ * Details: one conversation's task overview (status, id, workspace), its tool
+ * calls with expandable args/results, and the management actions (rename,
+ * cancel). Reached from the chat header; back returns to the chat.
  */
 import { useEffect, useMemo, useState } from 'react'
-import type { SessionId, ToolResultNode } from '@deepseek-ai/dsh-client-runtime/client'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { ToolResultNode } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { formatRelativeTime, pathBasename } from './mobileFormat.ts'
 import { MobileMessageItem } from './MobileMessageItem.tsx'
 import type { MobilePageProps } from './MobileShell.tsx'
@@ -18,10 +19,11 @@ interface Props extends MobilePageProps {
 
 /** The task-details page of the page stack. */
 export function MobileDetailsPage(props: Props) {
-  const { t, sessionId, binding, openSession } = props
+  const { t, sessionId, binding, openSession, conversation } = props
   const sessions = props.useSessions(s => s)
   const face = binding(sessionId)
   const snap = useSnapshot(face)
+  const chat = useSnapshot(conversation(sessionId as SessionId))
   const activeLocale = useSnapshot(props.locale)?.active ?? 'zh'
   const [renaming, setRenaming] = useState(false)
   const [name, setName] = useState('')
@@ -40,10 +42,10 @@ export function MobileDetailsPage(props: Props) {
   const updatedAt = summary?.updatedAt ?? 0
 
   const { settled, runningCalls } = useMemo(() => {
-    const settledTools = (snap?.nodes ?? [])
+    const settledTools = (chat?.legacy.nodes ?? [])
       .filter((node): node is ToolResultNode => node.kind === 'tool-result')
-    return { settled: settledTools, runningCalls: snap?.runningCalls ?? [] }
-  }, [snap])
+    return { settled: settledTools, runningCalls: chat?.legacy.runningCalls ?? [] }
+  }, [chat])
 
   const commitRename = (): void => {
     const next = name.trim()
@@ -82,12 +84,6 @@ export function MobileDetailsPage(props: Props) {
               <div>
                 <dt>{t('details.workspace')}</dt>
                 <dd>{pathBasename(summary.cwd)}</dd>
-              </div>
-            )}
-            {summary?.agentPreset !== undefined && (
-              <div>
-                <dt>{t('details.agent')}</dt>
-                <dd>{summary.agentPreset}</dd>
               </div>
             )}
             {updatedAt > 0 && (

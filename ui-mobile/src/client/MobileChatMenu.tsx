@@ -1,14 +1,14 @@
 /**
  * The conversation menu: a bottom sheet opened from the chat header's `⋯`
  * button. Root pane offers Details / Model / Access; Model and Access swap the
- * sheet to their pickers. Model selection mirrors the desktop seat's RPC path
- * (`session.models` + `session.selectModel`, neither trust-pinned) and Access
- * switches through the same `/permission <preset>` command the desktop chip
- * submits — so both work from the public phone without any core change.
+ * sheet to their pickers. Model selection reads the session's shared model
+ * directory (`ctx.modelDirectories`) and submits through `ModelDirectory.select`;
+ * Access switches through the same `/permission <preset>` command the desktop
+ * chip submits — so both work from the public phone without any core change.
  */
 import { useEffect, useState } from 'react'
-import type { SessionFace, SessionId } from '@deepseek-ai/dsh-client-runtime/client'
-import type { ConnectionHandle, ModelCatalogFailure, ModelProviderGroup, ModelSelection } from '@deepseek-ai/dsh-api-remotes/client'
+import type { SessionFace } from '@deepseek-ai/dsh-api-session-controller/client'
+import type { ModelDirectory, ModelDirectoryState } from '@deepseek-ai/dsh-client-ui-model-selection/client'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import { useSnapshot } from './useSnapshot.ts'
 import css from './MobileChatMenu.module.css'
@@ -34,14 +34,8 @@ function accessLabel(t: TranslateNS<'mobile'>, value: string): string {
   }
 }
 
-/** Model-directory state for the picker pane. */
-interface ModelState {
-  status: 'idle' | 'loading' | 'ready' | 'error'
-  current: ModelSelection | null
-  groups: readonly ModelProviderGroup[]
-  failures: readonly ModelCatalogFailure[]
-  error: string | null
-}
+/** The sheet owns a shadow copy of the shared model-directory state. */
+type ModelState = ModelDirectoryState
 
 export interface MobileChatMenuProps {
   t: TranslateNS<'mobile'>
@@ -49,8 +43,8 @@ export interface MobileChatMenuProps {
   sessionId: string
   /** The session's outward face; undefined before the session is staged. */
   face: SessionFace | undefined
-  /** The connection wire face holding the per-session model RPCs. */
-  connection: ConnectionHandle
+  /** The per-session model directory; undefined before the session is staged. */
+  modelDirectory: ModelDirectory | undefined
   /** Close the sheet. */
   onClose(): void
   /** Jump to the conversation's details page. */
@@ -59,47 +53,30 @@ export interface MobileChatMenuProps {
 
 /** The conversation menu bottom sheet. */
 export function MobileChatMenu(props: MobileChatMenuProps) {
-  const { t, sessionId, face, connection, onClose, onDetails } = props
+  const { t, face, modelDirectory, onClose, onDetails } = props
   const [pane, setPane] = useState<Pane>('root')
   const [busy, setBusy] = useState(false)
-  const [model, setModel] = useState<ModelState>({ status: 'idle', current: null, groups: [], failures: [], error: null })
+  const [model, setModel] = useState<ModelState>({ status: 'idle', current: null, routable: null, groups: [], failures: [], error: null })
   const [accessError, setAccessError] = useState<string | null>(null)
   const [confirm, setConfirm] = useState<string | null>(null)
+
+  const dir = useSnapshot(modelDirectory === undefined ? undefined : modelDirectory.store)
 
   // Live access projection (updates when the permission changes elsewhere).
   const access = useSnapshot<unknown>(face?.projections.faceOf('permissions')) as AccessProjection | undefined
 
-  // Load the model directory the first time the model pane opens.
+  // Mirror the shared directory state into the sheet's own copy.
   useEffect(() => {
-    if (pane !== 'model' || model.status === 'loading' || model.status === 'ready') return
-    setModel(s => ({ ...s, status: 'loading', error: null }))
-    void connection.api.sessions.models({ sessionId: sessionId as SessionId })
-      .then(({ result }) => {
-        if (!result.ok) {
-          setModel(s => ({ ...s, status: 'error', error: `${result.error.code}: ${result.error.message}` }))
-          return
-        }
-        setModel({
-          status: 'ready',
-          current: result.value.current,
-          groups: result.value.groups,
-          failures: result.value.failures,
-          error: null,
-        })
-      })
-      .catch((err: unknown) => {
-        setModel(s => ({ ...s, status: 'error', error: err instanceof Error ? err.message : String(err) }))
-      })
-  }, [pane, model.status, connection, sessionId])
+    if (dir === undefined) return
+    setModel(dir)
+  }, [dir])
 
-  const commitModel = (selection: ModelSelection): void => {
+  const commitModel = (selection: Parameters<ModelDirectory['select']>[0]): void => {
+    if (modelDirectory === undefined) return
     setBusy(true)
     setModel(s => ({ ...s, error: null }))
-    void connection.api.sessions.selectModel({ sessionId: sessionId as SessionId, ...selection })
-      .then(({ result }) => {
-        if (!result.ok) throw new Error(result.error.message)
-        onClose()
-      })
+    void modelDirectory.select(selection)
+      .then(() => { onClose() })
       .catch((err: unknown) => {
         setBusy(false)
         setModel(s => ({ ...s, error: err instanceof Error ? err.message : String(err) }))
@@ -162,13 +139,11 @@ export function MobileChatMenu(props: MobileChatMenuProps) {
               <span className={css.paneTitle}>{t('model.picker.title')}</span>
               <span className={css.headerSpacer} />
             </header>
+            {model.status === 'idle' && <div className={css.status}>{t('model.loading')}</div>}
             {model.status === 'loading' && <div className={css.status}>{t('model.loading')}</div>}
             {model.status === 'error' && (
               <div className={css.status}>
                 <span className={css.error}>{model.error ?? t('model.loadError')}</span>
-                <button type="button" className={css.retry} onClick={() => setModel(s => ({ ...s, status: 'idle' }))}>
-                  {t('model.retryButton')}
-                </button>
               </div>
             )}
             {model.status === 'ready' && (

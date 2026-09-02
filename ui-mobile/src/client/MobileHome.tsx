@@ -3,7 +3,8 @@
  * the landing page of the mobile shell, plus the door to settings.
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { SessionId, WorkspaceId } from '@deepseek-ai/dsh-client-runtime/client'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { WorkspaceId } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import { formatRelativeTime, pathBasename } from './mobileFormat.ts'
 import { navigateChat, navigateSettings } from './useMobileNav.ts'
 import type { MobilePageProps } from './MobileShell.tsx'
@@ -66,7 +67,7 @@ export function MobileHome(props: MobilePageProps) {
   // clears the selection and the tap looks dead. A tap that landed early waits
   // here for readiness; with no workspace at all it reports that instead.
   useEffect(() => {
-    if (!creating || !workspaces.baselinesReady || dispatchedCreate.current) return
+    if (!creating || workspaces.phase !== 'ready' || dispatchedCreate.current) return
     dispatchedCreate.current = true
     if (workspaces.items.length === 0) {
       pendingCreate.current = false
@@ -84,7 +85,7 @@ export function MobileHome(props: MobilePageProps) {
       navigateChat(sessions.current)
     }
     startSession()
-  }, [creating, workspaces.baselinesReady, workspaces.items.length, sessions.current, sessions.byId, startSession, t])
+  }, [creating, workspaces.phase, workspaces.items.length, sessions.current, sessions.byId, startSession, t])
 
   // Creation over a slow link must never leave the button stuck spinning if it
   // fails silently (startSession reports failures on the list state, not here).

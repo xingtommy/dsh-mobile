@@ -1,17 +1,18 @@
 /**
  * Pending-interaction takeover: the mobile counterpart of the desktop composer
- * chain. While the session face snapshot carries pending approval/question
- * waits, this panel renders above the composer so the phone can answer them
- * (the desktop chain occupies `conversation.composer`, a slot the mobile shell
- * does not dispatch). The wire encodings mirror the desktop domain faces
- * exactly: ui-user-questions' PendingQuestion answer batch and
- * ui-conversation's PendingApproval allow-once/reject decision.
+ * chain. While a session has a pending approval/question wait, this panel
+ * renders above the composer so the phone can answer them (the desktop chain
+ * occupies `conversation.composer`, a slot the mobile shell does not
+ * dispatch). The carriers come from ui-session's pending map and are answered
+ * through their domain methods (PendingApproval.answer / PendingQuestion.answer).
  */
 import { useState, type ChangeEvent } from 'react'
 import { MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { PendingInteraction, RunningToolCall } from '@deepseek-ai/dsh-client-runtime/client'
+import type { RunningToolCall } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { SessionPendingInteraction } from '@deepseek-ai/dsh-client-ui-session/client'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import { answerApproval, answerQuestion, cancelQuestion } from './adapt/harness.ts'
+import { mobileMarkdownLabels } from './mobileMarkdown.ts'
 import css from './MobilePendingPanel.module.css'
 
 type MobileT = TranslateNS<'mobile'>
@@ -43,7 +44,7 @@ interface DraftAnswer {
 }
 
 interface PanelProps {
-  pending: readonly PendingInteraction[]
+  pending: readonly SessionPendingInteraction[]
   runningCalls: readonly RunningToolCall[]
   t: MobileT
 }
@@ -60,7 +61,7 @@ export function MobilePendingPanel(props: PanelProps) {
         ? <ApprovalCard
             key={wait.key}
             wait={wait}
-            command={commandOf(props.runningCalls.find(call => call.callId === wait.payload.callId))}
+            command={commandOf(props.runningCalls.find(call => call.callId === wait.callId))}
             t={props.t}
           />
         : <QuestionCard key={wait.key} wait={wait} t={props.t} />)}
@@ -71,7 +72,7 @@ export function MobilePendingPanel(props: PanelProps) {
 // ---- approval ----
 
 function ApprovalCard(props: {
-  wait: Extract<PendingInteraction, { kind: 'approval' }>
+  wait: Extract<SessionPendingInteraction, { kind: 'approval' }>
   command?: string | undefined
   t: MobileT
 }) {
@@ -85,7 +86,7 @@ function ApprovalCard(props: {
       <div className={css.strip}><span className={css.dot} />{props.t('pending.approval.waiting')}</div>
       <div className={css.body}>
         <div className={css.headline}>
-          {props.wait.payload.reason ?? props.t('pending.approval.escalation', { toolName: props.wait.payload.toolName })}
+          {props.wait.reason ?? props.t('pending.approval.escalation', { toolName: props.wait.toolName })}
         </div>
         {props.command !== undefined && <div className={css.command}>{props.command}</div>}
       </div>
@@ -104,10 +105,11 @@ function ApprovalCard(props: {
 // ---- question ----
 
 function QuestionCard(props: {
-  wait: Extract<PendingInteraction, { kind: 'question' }>
+  wait: Exclude<SessionPendingInteraction, { kind: 'approval' }>
   t: MobileT
 }) {
-  const questions = props.wait.payload.questions
+  const questions = props.wait.questions
+  const labels = mobileMarkdownLabels(props.t)
   const [drafts, setDrafts] = useState<DraftAnswer[]>(() => questions.map(() => ({
     selected: [], custom: '', skipped: false,
   })))
@@ -196,7 +198,7 @@ function QuestionCard(props: {
               {question.header !== undefined && <div className={css.eyebrow}>{question.header}</div>}
               <div className={css.qTitle}>{question.question}</div>
               {question.detail !== undefined && (
-                <div className={css.qDetail}><MarkdownText text={question.detail} /></div>
+                <div className={css.qDetail}><MarkdownText text={question.detail} labels={labels} /></div>
               )}
               <div className={css.options} role={multi ? 'group' : 'radiogroup'}>
                 {(question.options ?? []).map((option, optionIndex) => {

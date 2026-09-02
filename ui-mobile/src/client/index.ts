@@ -10,8 +10,12 @@
  * children, it coexists with ui-layout's frame registration (same cell,
  * distinct priority — lowest renders) and needs no store seat.
  */
-import type { ClientContext, SessionId, WorkspaceId } from '@deepseek-ai/dsh-client-runtime/client'
-import type { ConnectionHandle } from '@deepseek-ai/dsh-api-remotes/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { WorkspaceId } from '@deepseek-ai/dsh-api-workspace-controller/client'
+// Type-only: pulls the slot registry's Context merge (ctx.slots) into the
+// client program (declared by ui-renderer's client entry).
+import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale) and the
 // theme plugin's (ctx.theme) into the client program.
 import type {} from '@deepseek-ai/dsh-client-locale/client'
@@ -41,7 +45,7 @@ declare global {
 const NS = 'mobile'
 
 /** Required services (cordis fiber inject). */
-export const inject = ['slots', 'sessions', 'workspaces', 'locale', 'theme', 'connection']
+export const inject = ['slots', 'sessions', 'workspaces', 'uiWorkspace', 'uiConversation', 'locale', 'theme', 'modelDirectories']
 
 /**
  * Client plugin body: register the mobile shell into `root` (priority −1)
@@ -83,11 +87,17 @@ export function apply(ctx: ClientContext): void {
             // The hash router's ids are plain strings; brand them at the service boundary.
             binding: (id: string) => ctx.sessions.binding(id as SessionId)?.session,
             openSession: (id: string) => ctx.sessions.open(id as SessionId),
-            startSession: (workspaceId?: string) => ctx.workspaces.startSession(workspaceId as WorkspaceId | undefined),
-            connection: ctx.get('connection') as ConnectionHandle,
+            startSession: (workspaceId?: string) => ctx.get('uiWorkspace').startSession(workspaceId as WorkspaceId | undefined),
+            conversation: (sessionId: SessionId) => {
+              const binding = ctx.uiConversation.binding(sessionId)
+              return binding === undefined ? undefined : binding.target('chat')
+            },
+            modelDirectory: (sessionId: SessionId) => {
+              try { return ctx.modelDirectories.directoryFor(sessionId) } catch { return undefined }
+            },
             createWorkspace: (path: string) => ctx.workspaces.create({ path }).then(() => undefined),
-            listDirectory: (path?: string) => ctx.workspaces.listDirectory(path),
-            createDirectory: (path: string, name: string) => ctx.workspaces.createDirectory(path, name),
+            listDirectory: (path?: string) => ctx.get('uiWorkspace').listDirectory(path),
+            createDirectory: (path: string, name: string) => ctx.get('uiWorkspace').createDirectory(path, name),
             setTheme: (id: string) => ctx.theme.setTheme(id),
             setLocale: (id: string) => ctx.locale.setLocale(id),
             // The locale service is itself a LocaleFace (getSnapshot/subscribe).

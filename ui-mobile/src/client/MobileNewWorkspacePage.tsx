@@ -7,7 +7,7 @@
  * pickDirectory`) stays loopback-pinned and is never touched.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { DirectoryListing } from '@deepseek-ai/dsh-api-remotes/client'
+import type { DirectoryListing } from '@deepseek-ai/dsh-host-directory-picker/types'
 import type { MobilePageProps } from './MobileShell.tsx'
 import { goBack, navigateHome } from './useMobileNav.ts'
 import css from './MobileNewWorkspacePage.module.css'

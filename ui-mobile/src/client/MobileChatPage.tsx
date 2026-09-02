@@ -6,7 +6,9 @@
  * here directly once the session's scope is listed.
  */
 import { useEffect, useRef, useState } from 'react'
-import type { ConversationNode, PendingInteraction, QueuedMessage, RunningToolCall, SessionId } from '@deepseek-ai/dsh-client-runtime/client'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { ConversationNode, RunningToolCall } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { QueuedMessage } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { MobilePageProps } from './MobileShell.tsx'
 import { MobileChatMenu } from './MobileChatMenu.tsx'
 import { MobileMessageItem } from './MobileMessageItem.tsx'
@@ -23,20 +25,23 @@ interface Props extends MobilePageProps {
 
 const EMPTY_NODES: readonly ConversationNode[] = []
 const EMPTY_CALLS: readonly RunningToolCall[] = []
-const EMPTY_PENDING: readonly PendingInteraction[] = []
 const EMPTY_QUEUE: readonly QueuedMessage[] = []
 
 /** One conversation page of the page stack. */
 export function MobileChatPage(props: Props) {
-  const { t, sessionId, binding, openSession } = props
+  const { t, sessionId, binding, openSession, conversation } = props
   // Re-renders on list changes so a deep link resolves once the scope is minted.
   const sessions = props.useSessions(s => s)
   const face = binding(sessionId)
-  // The reactive snapshot/projections ride the contract SessionFace; actions
+  // The reactive lifecycle/queue rides the contract SessionFace; actions
   // (prompt/cancel/loadOlder) route through the contract adapter so a harness
   // version change is one file.
   const session = face === undefined ? undefined : toHarnessSession(face)
   const snap = useSnapshot(face)
+  // Conversation content (nodes/partial/runningCalls) is a separate ui-chat
+  // view target; read its `legacy` slice so the message flow is unchanged.
+  const chat = useSnapshot(conversation(sessionId as SessionId))
+  const pendingForSession = props.useSessionPendingInteraction(s => s.get(sessionId as SessionId))
   const [text, setText] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const scrollerRef = useRef<HTMLDivElement | null>(null)
@@ -51,14 +56,14 @@ export function MobileChatPage(props: Props) {
   }, [face, sessionId, openSession, sessions])
 
   const title = sessions.byId[sessionId as SessionId]?.displayTitle ?? sessionId
-  const nodes = snap?.nodes ?? EMPTY_NODES
-  const partial = snap?.partial ?? null
-  const runningCalls = snap?.runningCalls ?? EMPTY_CALLS
+  const nodes = chat?.legacy.nodes ?? EMPTY_NODES
+  const partial = chat?.legacy.partial ?? null
+  const runningCalls = chat?.legacy.runningCalls ?? EMPTY_CALLS
   const running = snap?.running === true
   const promptError = snap?.promptError ?? null
   const openState = snap?.openState
   const hasMore = snap?.hasMore === true
-  const pendingInteractions = snap?.pending ?? EMPTY_PENDING
+  const pendingInteractions = pendingForSession === undefined ? [] : [pendingForSession]
   const queueItems = snap?.queue ?? EMPTY_QUEUE
 
   const onScroll = (): void => {
@@ -177,7 +182,7 @@ export function MobileChatPage(props: Props) {
           t={t}
           sessionId={sessionId}
           face={face}
-          connection={props.connection}
+          modelDirectory={props.modelDirectory(sessionId as SessionId)}
           onClose={() => setMenuOpen(false)}
           onDetails={() => navigateDetails(sessionId)}
         />

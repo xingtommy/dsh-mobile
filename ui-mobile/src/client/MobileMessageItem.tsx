@@ -11,10 +11,9 @@ import { MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
   AssistantBlock, CommandNode, ConversationNode, PartialAssistant,
   RunningToolCall, ToolResultNode,
-} from '@deepseek-ai/dsh-client-runtime/client'
-import { toAssistantBlocks } from '@deepseek-ai/dsh-client-runtime/client'
-import type { ContentBlock } from '@deepseek-ai/dsh-api-remotes/client'
+} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+import { mobileMarkdownLabels } from './mobileMarkdown.ts'
 import css from './MobileMessageItem.module.css'
 
 interface Props {
@@ -28,10 +27,10 @@ interface Props {
 }
 
 /** Text blocks of a content list, joined — the bubble body for user/assistant. */
-function textOf(content: readonly ContentBlock[]): string {
-  return toAssistantBlocks(content)
-    .filter(block => block.kind === 'text')
-    .map(block => block.text)
+function textOf(content: readonly unknown[]): string {
+  return (content as ReadonlyArray<{ type: string; text?: string }>)
+    .filter(block => block.type === 'text')
+    .map(block => block.text ?? '')
     .join('\n')
 }
 
@@ -43,6 +42,7 @@ function AssistantBubble(props: {
   interrupted?: boolean
 }) {
   const { blocks, t } = props
+  const labels = mobileMarkdownLabels(t)
   const reasoning = blocks.find(block => block.kind === 'reasoning')
   const texts = blocks.filter(block => block.kind === 'text')
   const toolChips = blocks.filter(block => block.kind === 'tool-call')
@@ -60,6 +60,7 @@ function AssistantBubble(props: {
             key={index}
             text={block.text}
             streaming={props.streaming === true}
+            labels={labels}
           />
         ))}
         {toolChips.length > 0 && (

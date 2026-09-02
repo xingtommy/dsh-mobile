@@ -125,6 +125,9 @@ export const zh = {
   'queue.remove': '删除',
   'queue.steer': '插话发送',
   'queue.steerUnavailable': '仅运行中可插话发送',
+  'copy': '复制',
+  'copied': '已复制',
+  'markdown.footnotes': '脚注',
 }
 
 /** English dictionary (every key mirrored). */
@@ -248,6 +251,9 @@ export const en: Record<keyof typeof zh, string> = {
   'queue.remove': 'Remove',
   'queue.steer': 'Steer',
   'queue.steerUnavailable': 'Steer is available only while the agent is running',
+  'copy': 'Copy',
+  'copied': 'Copied',
+  'markdown.footnotes': 'Footnotes',
 }
 
 /** Namespace keys owned by this plugin. */

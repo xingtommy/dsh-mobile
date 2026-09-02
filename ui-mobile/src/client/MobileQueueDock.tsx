@@ -6,7 +6,7 @@
  * desktop dock drives.
  */
 import { useState } from 'react'
-import type { QueuedMessage } from '@deepseek-ai/dsh-client-runtime/client'
+import type { QueuedMessage } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import type { HarnessSession } from './adapt/harness.ts'
 import css from './MobileQueueDock.module.css'

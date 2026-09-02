@@ -5,7 +5,7 @@
  * synthesis needed — the session face is the whole snapshot).
  */
 import { useCallback, useSyncExternalStore } from 'react'
-import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 
 /**
  * Subscribe to an observable snapshot source.
