@@ -40,7 +40,10 @@ jobs:
 
       - name: Install
         working-directory: harness
-        run: pnpm install
+        # The overlay is a new workspace member, so the harness lockfile is
+        # intentionally out of date until install; CI defaults to frozen-lockfile,
+        # so opt out so pnpm can add the overlay's importers.
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build client bundle
         working-directory: harness
