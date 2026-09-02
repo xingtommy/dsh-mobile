@@ -21,7 +21,19 @@
       "path": "../ui-primitives"
     },
     {
-      "path": "../runtime"
+      "path": "../ui-session"
+    },
+    {
+      "path": "../store"
+    },
+    {
+      "path": "../ui-conversation"
+    },
+    {
+      "path": "../ui-approval"
+    },
+    {
+      "path": "../ui-user-questions"
     },
     {
       "path": "../ui-theme"
@@ -37,6 +49,9 @@
     },
     {
       "path": "../../api/remotes/tsconfig.client.json"
+    },
+    {
+      "path": "../../api/session-controller/tsconfig.client.json"
     }
   ]
 }
