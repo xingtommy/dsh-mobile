@@ -55,13 +55,14 @@ export const inject = ['slots', 'sessions', 'workspaces', 'uiWorkspace', 'uiConv
  * @param ctx - client root context.
  */
 export function apply(ctx: ClientContext): void {
-  const mq = window.matchMedia('(max-width: 767px)')
-  // A phone browser can render a desktop-width viewport ("request desktop
-  // site"), so also treat a mobile User-Agent as mobile — the shell shadows
-  // the desktop frame on any real phone even when the viewport is wide.
+  // Device-based decision: a desktop User-Agent always gets the desktop frame,
+  // a mobile User-Agent gets the mobile shell — independent of the viewport
+  // width (a phone in "request desktop site" mode keeps the mobile shell, and a
+  // narrow desktop window stays desktop). #/mobile and __DSH_MOBILE__ remain
+  // manual overrides.
   const isMobileUA = (): boolean => /Android|iPhone|iPad|iPod|Mobile|Windows Phone|IEMobile|Opera Mini|BlackBerry|webOS/i.test(navigator.userAgent)
   const isMobile = (): boolean =>
-    window.__DSH_MOBILE__ === true || isMobileHash(window.location.hash) || mq.matches || isMobileUA()
+    window.__DSH_MOBILE__ === true || isMobileHash(window.location.hash) || isMobileUA()
 
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-mobile: dictionaries')
 
@@ -122,10 +123,8 @@ export function apply(ctx: ClientContext): void {
     }
     sync()
     const onChange = (): void => { sync() }
-    mq.addEventListener('change', onChange)
     window.addEventListener('hashchange', onChange)
     return () => {
-      mq.removeEventListener('change', onChange)
       window.removeEventListener('hashchange', onChange)
       disposeRegistration?.()
     }
