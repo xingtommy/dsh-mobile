@@ -12,14 +12,31 @@ layer, and run the gateway in front of `dsh web`.
 
 ## 1. Add the plugin package
 
-Copy the `ui-mobile/` directory into the checkout:
+The repo carries both overlay lines and picks the one matching your harness:
+
+- `ui-mobile-v1/` — the v1 overlay (targets `dsh-v0.1.1-rc.2`, imports
+  `@deepseek-ai/dsh-client-runtime`).
+- `ui-mobile-v2/` — the v2 overlay (targets the `0.1.2+` alpha.3 client layer).
+
+Copy the file is one step; picking the right one is what
+`scripts/compat-patch.mjs` does for you — it reads your checkout's harness
+version and injects the matching variant:
 
 ```bash
-cp -r ui-mobile <checkout>/packages/client/ui-mobile
+node scripts/compat-patch.mjs <checkout> .   # e.g. node scripts/compat-patch.mjs ../deepseek-harness .
 ```
 
-The package stays named `@deepseek-ai/dsh-client-ui-mobile` — the bundle and
-the patch layer reference it by that name.
+The script copies the selected overlay into `<checkout>/packages/client/ui-mobile`,
+adds the `tsconfig.client.json` reference, and declares the web-app bundle
+dependency (INSTALL.md §2). The injected package stays named
+`@deepseek-ai/dsh-client-ui-mobile` — the bundle and the patch layer reference
+it by that name.
+
+To inject manually, copy the variant dir instead:
+
+```bash
+cp -r ui-mobile-v2 <checkout>/packages/client/ui-mobile   # or ui-mobile-v1
+```
 
 ## 2. Wire the bundle
 
@@ -138,8 +155,8 @@ node dsh-gateway.mjs --listen 3081 --target 127.0.0.1:3080
 — older `ui-mobile` copies registered the gateway-PIN card without declaring
 `@deepseek-ai/dsh-client-ui-settings-plugins` as a loader-level inject, so the
 slot the card registers into could resolve before its owner loaded, failing the
-whole plugin. Fixed in this repo's `ui-mobile/package.json` (`dsh.client.inject`);
-re-copy `ui-mobile/` over your checkout's copy and restart `dsh web`.
+whole plugin. Fixed in this repo's overlay `package.json` (`dsh.client.inject`);
+re-run `scripts/compat-patch.mjs` over your checkout's copy and restart `dsh web`.
 
 **The phone renders the app shell but every list is empty** — that is dsh's
 `/api` trust fence, not missing data: non-loopback `Host` headers are answered

@@ -13,9 +13,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # v2 line targets the 0.1.2+ client layer (client-store / ui-approval /
-        # ui-chat / ui-session); RED until the client-side rewrite lands.
-        harness: [dsh-v0.1.2-alpha.3]
+        # The install-time select wrapper (compat-patch.mjs) picks the overlay
+        # line by the actual harness version: >= 0.1.2 uses the alpha.3 client
+        # layer (ui-mobile-v2), older (rc.2) uses the v1 overlay (ui-mobile-v1).
+        # Running both keeps both lines green on this branch.
+        harness: [dsh-v0.1.1-rc.2, dsh-v0.1.2-alpha.3]
     steps:
       - uses: actions/checkout@v4
         with:

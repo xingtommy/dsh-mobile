@@ -1,0 +1,94 @@
+/* Transient inbox (queue) dock, mobile-sized. */
+
+.dock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 0;
+}
+
+.title {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.65;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 32vh;
+  overflow-y: auto;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--dsh-border, #e3e3e3);
+  border-radius: 10px;
+  background: var(--dsh-bg, #fff);
+}
+
+.preview {
+  font-size: 13px;
+  line-height: 1.45;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.linkButton,
+.primaryButton {
+  flex: 1 1 auto;
+  min-height: 38px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.linkButton {
+  background: transparent;
+  border-color: var(--dsh-border, #c9c9c9);
+  color: inherit;
+}
+
+.primaryButton {
+  background: var(--dsh-accent, #2f6fd0);
+  color: #fff;
+}
+
+.primaryButton:disabled {
+  opacity: 0.45;
+}
+
+.editInput {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 1px solid var(--dsh-border, #d9d9d9);
+  border-radius: 9px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.45;
+  background: transparent;
+  color: inherit;
+}
+
+.error {
+  font-size: 12px;
+  color: #c0392b;
+}

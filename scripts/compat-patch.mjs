@@ -3,6 +3,11 @@
 // -e). Lenient: a missing tsconfig anchor warns and continues — the overlay
 // still builds as a workspace member via tsdown's own package globs.
 //
+// The overlay line is chosen by the harness version: the alpha.3 client layer
+// (which removed @deepseek-ai/dsh-client-runtime and split the client model)
+// begins at 0.1.2, so a harness at >= 0.1.2 pulls ui-mobile-v2 and an older
+// harness (0.1.1 / rc.2) pulls ui-mobile-v1.
+//
 // Usage: node compat-patch.mjs <harnessDir> <overlayDir>
 
 import { cpSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
@@ -14,16 +19,46 @@ if (!harness || !overlay) {
   process.exit(2)
 }
 
-// 1. Copy the overlay package into the harness workspace.
-const src = join(overlay, 'ui-mobile')
+/** Read the harness's own version from its root package.json (the dsh-root package). */
+function harnessVersion(harnessDir) {
+  try {
+    const pkg = JSON.parse(readFileSync(join(harnessDir, 'package.json'), 'utf8'))
+    return pkg.version ?? '0'
+  } catch {
+    return '0'
+  }
+}
+
+/** Numeric [major, minor, patch] tuple from a semantic-ish version string. */
+function versionTuple(version) {
+  const match = /^(\d+)\.(\d+)\.(\d+)/.exec(version ?? '')
+  return match ? [Number(match[1]), Number(match[2]), Number(match[3])] : [0, 0, 0]
+}
+
+/** Whether tuple `a` is >= tuple `b`. */
+function gte(a, b) {
+  for (let i = 0; i < 3; i += 1) {
+    if (a[i] > b[i]) return true
+    if (a[i] < b[i]) return false
+  }
+  return true
+}
+
+const V2_MIN = [0, 1, 2]
+const version = harnessVersion(harness)
+const variant = gte(versionTuple(version), V2_MIN) ? 'ui-mobile-v2' : 'ui-mobile-v1'
+console.log(`harness version ${version} -> selecting ${variant}`)
+
+// 1. Copy the selected overlay package into the harness workspace.
+const src = join(overlay, variant)
 const dst = join(harness, 'packages/client/ui-mobile')
 if (!existsSync(src)) {
-  console.error(`overlay ui-mobile not found at ${src}`)
+  console.error(`overlay ${variant} not found at ${src}`)
   process.exit(3)
 }
 mkdirSync(join(harness, 'packages/client'), { recursive: true })
 cpSync(src, dst, { recursive: true })
-console.log(`copied ui-mobile -> ${dst}`)
+console.log(`copied ${variant} -> ${dst}`)
 
 // 2. Add the ui-mobile project reference to the client typecheck aggregate (JSONC).
 const tsPath = join(harness, 'tsconfig.client.json')
