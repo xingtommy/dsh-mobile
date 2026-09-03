@@ -45,6 +45,11 @@ if (!pin) {
   console.error('[dsh-gateway] auth.json must set "pin" (4-12 digits) — or set DSH_GATEWAY_PIN')
   process.exit(1)
 }
+// dsh web's per-process launch token (printed as ?token=… on startup). When the
+// wrapper hands it over (DSH_GATEWAY_DSH_TOKEN), a successful PIN login redirects
+// to /?token=… so dsh web mints its own browser-session cookie and public access
+// becomes PIN-only (the launch-token exchange is done for the user).
+const dshToken = process.env.DSH_GATEWAY_DSH_TOKEN ?? ''
 // Follow external edits to auth.json (hand editing, or another writer) so the
 // in-memory PIN always reflects the file. The /__setpin handler writes the file
 // itself, so its own write reloads to the same value — a harmless no-op.
@@ -202,7 +207,10 @@ function handleLogin(req, res) {
     const given = new URLSearchParams(body).get('pin') ?? ''
     if (strEq(given, pin)) {
       console.log(`  ${now()} POST /__login ok`)
-      res.writeHead(303, { Location: '/', 'Set-Cookie': issueCookie(), 'Cache-Control': 'no-store' })
+      // With a known dsh web launch token, immediately hand the browser to
+      // /?token=… so dsh web mints its own session cookie (PIN-only one step).
+      const location = dshToken ? `/?token=${encodeURIComponent(dshToken)}` : '/'
+      res.writeHead(303, { Location: location, 'Set-Cookie': issueCookie(), 'Cache-Control': 'no-store' })
       res.end()
     } else {
       console.log(`  ${now()} POST /__login failed`)
