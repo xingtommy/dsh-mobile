@@ -212,20 +212,32 @@ function handleLogin(req, res) {
   })
 }
 
-// Public + unauthenticated: /__login POST accepts a PIN; a top-level
-// navigation gets the PIN page; everything else a plain 401 (no dialog).
+// Public + unauthenticated: /__login POST accepts a PIN; a request carrying
+// the dsh web launch-token query must reach dsh web (it mints the dsh-auth
+// session cookie for this authority — the token IS dsh web's own auth), so
+// proxy it through even before the PIN; a top-level GET / gets the PIN login
+// page (any Accept); everything else a plain 401 (no dialog).
 function handleUnauthorized(req, res) {
   const pathname = (req.url ?? '/').split('?')[0]
   if (pathname === '/__login' && req.method === 'POST') return handleLogin(req, res)
-  if (pathname === '/' && /\btext\/html\b/i.test(req.headers.accept ?? '')) {
+  try {
+    const query = new URL(req.url ?? '/', 'http://dsh.invalid').searchParams
+    if (query.has('token')) {
+      console.log(`  ${now()} ${req.method} ${req.url} → dsh web (launch-token exchange)`)
+      return proxy(req, res)
+    }
+  } catch { /* malformed url → fall through to 401 */ }
+  if (pathname === '/' && req.method === 'GET') {
     console.log(`  ${now()} ${req.method} ${req.url} → PIN login page`)
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' })
-    res.end(pinPage(''))
+    const page = pinPage('')
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'Content-Length': Buffer.byteLength(page) })
+    res.end(page)
     return
   }
   console.log(`  ${now()} ${req.method} ${req.url} 401`)
-  res.writeHead(401, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' })
-  res.end('401 Unauthorized — dsh requires the PIN\n')
+  const text = '401 Unauthorized — dsh requires the PIN\n'
+  res.writeHead(401, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', 'Content-Length': Buffer.byteLength(text) })
+  res.end(text)
 }
 
 function handleSetPin(req, res) {
@@ -289,18 +301,22 @@ function forwardHeaders(headers) {
 // ── HTTP ──────────────────────────────────────────────────────────────────
 function proxy(req, res) {
   const upstream = http.request(
-    { host: TARGET_HOST, port: TARGET_PORT, method: req.method, path: req.url, headers: forwardHeaders(req.headers) },
+    // Ask dsh web for identity (uncompressed): the client's own Accept-Encoding
+    // would otherwise make dsh web compress AND the gateway compress again
+    // (double-gzip → browsers show raw gzip bytes). The gateway owns the only
+    // compression hop.
+    { host: TARGET_HOST, port: TARGET_PORT, method: req.method, path: req.url, headers: { ...forwardHeaders(req.headers), 'accept-encoding': 'identity' } },
     (up) => {
       const status = up.statusCode ?? 502
       const type = up.headers['content-type'] ?? ''
       const enc = up.headers['content-encoding'] ?? ''
       const accept = req.headers['accept-encoding'] ?? ''
-      const wantBr = /\bbr\b/i.test(accept)
       const wantGz = /\bgzip\b/i.test(accept)
-      const compressible = !enc && COMPRESSIBLE.test(type) && !ALREADY_BINARY.test(type) && (wantBr || wantGz)
 
-      // Buffer the (small, static/text) body, compress, re-send with a real
-      // Content-Length so the client sees exactly what it pays for.
+      // Buffer the (small, static/text) body, re-send with a real Content-Length
+      // so the client sees exactly what it pays for. Compress with gzip ONLY when
+      // the client asked for it (gzip is universally supported; brotli produced
+      // streams some clients could not decode).
       const chunks = []
       up.on('data', (c) => chunks.push(c))
       up.on('end', () => {
@@ -309,9 +325,6 @@ function proxy(req, res) {
         // crypto.randomUUID shim into the app's own HTML shell before compressing.
         const isHtmlShell = type.startsWith('text/html') && req.url.split('?')[0] === '/'
         const body = isHtmlShell ? injectRandomUuidPolyfill(raw) : raw
-        const useBr = wantBr
-        const zip = useBr ? zlib.brotliCompressSync(body, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 9 } })
-          : zlib.gzipSync(body, { level: 6 })
         const headers = { ...up.headers }
         delete headers['content-length']
         // The upstream is decompressed (or chunked) before we re-encode: a
@@ -319,12 +332,20 @@ function proxy(req, res) {
         // framing violation strict parsers (undici) refuse.
         delete headers['transfer-encoding']
         delete headers['content-encoding']
-        headers['content-encoding'] = useBr ? 'br' : 'gzip'
-        headers['vary'] = (headers['vary'] ? `${headers['vary']}, ` : '') + 'Accept-Encoding'
-        headers['content-length'] = zip.length
-        res.writeHead(status, headers)
-        res.end(zip)
-        console.log(`  ${now()} ${req.method} ${req.url} ${status} ${body.length}B → ${useBr ? 'br' : 'gzip'} ${zip.length}B (${Math.round((1 - zip.length / body.length) * 100)}% saved)${isHtmlShell ? ' +uuid-polyfill' : ''}`)
+        if (wantGz) {
+          const zip = zlib.gzipSync(body, { level: 6 })
+          headers['content-encoding'] = 'gzip'
+          headers['vary'] = (headers['vary'] ? `${headers['vary']}, ` : '') + 'Accept-Encoding'
+          headers['content-length'] = zip.length
+          res.writeHead(status, headers)
+          res.end(zip)
+          console.log(`  ${now()} ${req.method} ${req.url} ${status} ${body.length}B → gzip ${zip.length}B (${Math.round((1 - zip.length / body.length) * 100)}% saved)${isHtmlShell ? ' +uuid-polyfill' : ''}`)
+        } else {
+          headers['content-length'] = body.length
+          res.writeHead(status, headers)
+          res.end(body)
+          console.log(`  ${now()} ${req.method} ${req.url} ${status} ${body.length}B (uncompressed)${isHtmlShell ? ' +uuid-polyfill' : ''}`)
+        }
       })
       up.on('error', () => res.destroy())
     },

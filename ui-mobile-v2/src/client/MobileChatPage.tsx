@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ConversationNode, RunningToolCall } from '@deepseek-ai/dsh-client-ui-conversation/client'
-import type { QueuedMessage } from '@deepseek-ai/dsh-api-session-controller/client'
+import type { PendingSubmission, QueuedMessage } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { MobilePageProps } from './MobileShell.tsx'
 import { MobileChatMenu } from './MobileChatMenu.tsx'
 import { MobileMessageItem } from './MobileMessageItem.tsx'
@@ -26,6 +26,7 @@ interface Props extends MobilePageProps {
 const EMPTY_NODES: readonly ConversationNode[] = []
 const EMPTY_CALLS: readonly RunningToolCall[] = []
 const EMPTY_QUEUE: readonly QueuedMessage[] = []
+const EMPTY_SUBMISSIONS: readonly PendingSubmission[] = []
 
 /** One conversation page of the page stack. */
 export function MobileChatPage(props: Props) {
@@ -65,6 +66,11 @@ export function MobileChatPage(props: Props) {
   const hasMore = snap?.hasMore === true
   const pendingInteractions = pendingForSession === undefined ? [] : [pendingForSession]
   const queueItems = snap?.queue ?? EMPTY_QUEUE
+  // Local prompt-submission echoes (the message you just sent/steered) that
+  // haven't become a durable node yet — show them immediately so the phone
+  // mirrors the desktop's send/steer echo instead of waiting for the turn.
+  const visibleSubmissions = (snap?.pendingSubmissions ?? EMPTY_SUBMISSIONS)
+    .filter(submission => submission.placement !== 'queued')
 
   const onScroll = (): void => {
     const el = scrollerRef.current
@@ -116,6 +122,7 @@ export function MobileChatPage(props: Props) {
             <button className={css.loadOlder} onClick={loadOlder}>{t('chat.loadOlder')}</button>
           )}
           {nodes.map(node => <MobileMessageItem key={node.seq} node={node} t={t} />)}
+          {visibleSubmissions.map(submission => <MobileMessageItem key={submission.requestId} pending={submission} t={t} />)}
           {partial !== null && <MobileMessageItem partial={partial} t={t} />}
           {runningCalls.map(call => <MobileMessageItem key={call.callId} runningCall={call} t={t} />)}
           {promptError !== null && <div className={css.error}>{promptError.error.message}</div>}

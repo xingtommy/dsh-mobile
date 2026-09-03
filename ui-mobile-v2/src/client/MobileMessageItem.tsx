@@ -12,6 +12,7 @@ import type {
   AssistantBlock, CommandNode, ConversationNode, PartialAssistant,
   RunningToolCall, ToolResultNode,
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { PendingSubmission } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import { mobileMarkdownLabels } from './mobileMarkdown.ts'
 import css from './MobileMessageItem.module.css'
@@ -23,6 +24,8 @@ interface Props {
   partial?: PartialAssistant
   /** A running tool call card. */
   runningCall?: RunningToolCall
+  /** A local prompt-submission echo (transcript / steering) awaiting its durable node. */
+  pending?: PendingSubmission
   t: TranslateNS<'mobile'>
 }
 
@@ -150,9 +153,18 @@ function CommandRow(props: { t: TranslateNS<'mobile'>; node: CommandNode }) {
  * runningCall should be present.
  */
 export function MobileMessageItem(props: Props) {
-  const { t, node, partial, runningCall } = props
+  const { t, node, partial, runningCall, pending } = props
   if (partial !== undefined) return <AssistantBubble blocks={partial.blocks} t={t} streaming />
   if (runningCall !== undefined) return <ToolCard t={t} call={runningCall} />
+  if (pending !== undefined) {
+    // A transient submission/steer echo: show the text immediately so the
+    // sender sees what they just queued/steered before the durable node lands.
+    return (
+      <div className={`${css.row} ${css.userRow}`}>
+        <div className={css.userBubble}>{pending.text}</div>
+      </div>
+    )
+  }
   if (node === undefined) return null
   switch (node.kind) {
     case 'user':
