@@ -56,7 +56,12 @@ export const inject = ['slots', 'sessions', 'workspaces', 'uiWorkspace', 'uiConv
  */
 export function apply(ctx: ClientContext): void {
   const mq = window.matchMedia('(max-width: 767px)')
-  const isMobile = (): boolean => window.__DSH_MOBILE__ === true || isMobileHash(window.location.hash) || mq.matches
+  // A phone browser can render a desktop-width viewport ("request desktop
+  // site"), so also treat a mobile User-Agent as mobile — the shell shadows
+  // the desktop frame on any real phone even when the viewport is wide.
+  const isMobileUA = (): boolean => /Android|iPhone|iPad|iPod|Mobile|Windows Phone|IEMobile|Opera Mini|BlackBerry|webOS/i.test(navigator.userAgent)
+  const isMobile = (): boolean =>
+    window.__DSH_MOBILE__ === true || isMobileHash(window.location.hash) || mq.matches || isMobileUA()
 
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-mobile: dictionaries')
 
