@@ -145,7 +145,7 @@ node dsh-gateway.mjs --listen 3081 --target 127.0.0.1:3080
 
 - Loopback: `http://127.0.0.1:3081` needs no PIN and renders the desktop app.
 - Public: open the tunnel URL on the phone → PIN page → the mobile shell.
-- `ui-mobile/e2e/mobile.mjs` is a Playwright smoke test that drives the mobile
+- `ui-mobile-v2/e2e/mobile.mjs` is a Playwright smoke test that drives the mobile
   shell and the gateway against a live `dsh web` (`DSH_GATEWAY=1` to exercise
   the proxy).
 

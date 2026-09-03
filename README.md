@@ -9,7 +9,7 @@ modified. Everything lives in two places:
 
 | Path | What it is |
 |---|---|
-| [`ui-mobile/`](ui-mobile/) | A dsh **client plugin** (`@deepseek-ai/dsh-client-ui-mobile`): a full-screen, page-stack mobile shell that shadows the desktop three-pane frame on small viewports. Own Home / Chat / Task-details / Settings pages, plus a conversation menu (details · model · permission) and a new-workspace directory browser. |
+| [`ui-mobile-v1/`](ui-mobile-v1/) / [`ui-mobile-v2/`](ui-mobile-v2/) | Two overlay lines of a dsh **client plugin** (`@deepseek-ai/dsh-client-ui-mobile`): a full-screen, page-stack mobile shell that shadows the desktop three-pane frame on small viewports, with Home / Chat / Task-details / Settings pages, a conversation menu (details · model · permission) and a new-workspace directory browser. `ui-mobile-v1/` targets `dsh-v0.1.1-rc.2`; `ui-mobile-v2/` targets the `0.1.2+` alpha.3 client layer. `scripts/compat-patch.mjs` reads your harness version and injects the matching line. |
 | [`gateway/`](gateway/) | `dsh-gateway` — a tiny **zero-dependency** reverse proxy in front of `dsh web` that adds PIN access control (a self-contained login page that works in every mobile browser and in-app webview, incl. WeChat) and gzip/brotli compression, then lets an NPS TCP tunnel expose it to the public. |
 
 ## Architecture
@@ -81,7 +81,9 @@ node dsh-gateway.mjs --listen 3081 --target 127.0.0.1:3080
 
 ```
 gateway/            dsh-gateway.mjs (PIN + compression reverse proxy), auth.example.json
-ui-mobile/          the mobile UI plugin source (overlay — copy into a dsh checkout)
+ui-mobile-v1/       v1 overlay source (targets dsh-v0.1.1-rc.2)
+ui-mobile-v2/       v2 overlay source (targets the 0.1.2+ alpha.3 client layer)
+scripts/            compat-patch.mjs (inject the version-matched overlay into a dsh checkout)
 INSTALL.md          end-to-end install: plugin wiring, patch rows, gateway, tunnel
 ```
 

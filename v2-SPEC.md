@@ -17,7 +17,7 @@ contract by reading the package's `/client` exports before wiring (alpha is movi
 
 ## File-by-file migration
 
-1. **`ui-mobile/package.json`**
+1. **`ui-mobile-v2/package.json`**
    - peer/devDeps: drop `@deepseek-ai/dsh-client-runtime`; add `@deepseek-ai/dsh-api-session-controller`, `@deepseek-ai/dsh-client-store`, `@deepseek-ai/dsh-client-ui-session` (workspace:^).
    - `dsh.client.inject`: add the new packages that must load before ui-mobile (`dsh-client-ui-session`, `dsh-client-ui-slots`, ...).
 2. **`adapt/harness.ts`**
